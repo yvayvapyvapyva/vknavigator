@@ -4,8 +4,14 @@
     <meta charset="utf-8">
     <title>Route Navigator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- VK Mini Apps SDK -->
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <!-- Яндекс.Карты -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=YANDEX_API_KEY&lang=ru_RU&suppressMapOpenBlock=true"></script>
+    <!-- VK Adapter и общие скрипты -->
+    <script src="assets/js/vk-adapter.js"></script>
+    <script src="assets/js/shared.js"></script>
+    <script src="assets/js/vk-report.js"></script>
     <link rel="stylesheet" href="assets/css/shared.css">
     <style>
     :root {
@@ -2217,13 +2223,24 @@ document.addEventListener('visibilitychange', () => {
 // ИНИЦИАЛИЗАЦИЯ
 // ============================================
 async function initApp() {
-    const tg = getTelegramWebApp();
-    if (tg) {
-        tg.expand();
-        if (tg.requestFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
-        if (tg.setHeaderColor) tg.setHeaderColor('secondary_bg_color');
-        // Отключаем вертикальные свайпы Telegram только когда меню закрыто
-        if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+    // Инициализируем VK адаптер или используем Telegram
+    const vkApp = window.VKMiniApps ? window.VKMiniApps.WebApp : null;
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    const webApp = vkApp || tg;
+
+    if (webApp) {
+        if (vkApp) {
+            // VK Mini Apps
+            await webApp.expand();
+            if (vkApp.requestFullscreen) { try { vkApp.requestFullscreen(); } catch (e) {} }
+            if (vkApp.setHeaderColor) vkApp.setHeaderColor('secondary_bg_color');
+        } else {
+            // Telegram WebApp
+            if (tg.expand) tg.expand();
+            if (tg.requestFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
+            if (tg.setHeaderColor) tg.setHeaderColor('secondary_bg_color');
+            if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+        }
 
         // Пробуем активировать Wake Lock сразу после expand()
         wakeFromUser();
@@ -2231,6 +2248,7 @@ async function initApp() {
 
     APP.token = getTokenFromUrl();
     console.log('=== ИНИЦИАЛИЗАЦИЯ ===');
+    console.log('Платформа:', window.VKMiniApps ? 'VK Mini Apps' : (tg ? 'Telegram WebApp' : 'Веб'));
     console.log('Токен:', APP.token ? 'получен (' + APP.token.length + ' символов)' : 'НЕ ПОЛУЧЕН');
     console.log('User ID:', APP.user.id);
     console.log('User Name:', APP.user.name);
@@ -2238,7 +2256,18 @@ async function initApp() {
 
     // Обработка start_param для прямого запуска навигатора
     const urlParams = new URLSearchParams(location.search);
-    const startParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || urlParams.get('startapp');
+    let startParam = urlParams.get('startapp');
+    
+    // Для VK используем vk_ref или startapp
+    if (window.VKMiniApps && !startParam) {
+        startParam = urlParams.get('vk_ref') || urlParams.get('vk_launch');
+    }
+    
+    // Для Telegram используем initDataUnsafe.start_param
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+        startParam = tg.initDataUnsafe.start_param;
+    }
+    
     const routeParam = urlParams.get('route'); // Параметр route для запуска навигатора
     const hasTParam = urlParams.has('t');
     console.log('hasTParam:', hasTParam, 'startParam:', startParam, 'routeParam:', routeParam);
@@ -2246,7 +2275,7 @@ async function initApp() {
     // Обработчики кликов для Wake Lock (дублирование на случай если первый вызов не сработал)
     document.addEventListener('click', wakeFromUser);
     document.addEventListener('touchstart', wakeFromUser);
-    
+
     // Инициализация карты
     ymaps.ready(() => {
         APP.map = new ymaps.Map('map', {
@@ -2267,10 +2296,10 @@ async function initApp() {
         APP.map.geoObjects.add(APP.userMarker);
 
         initGeolocation();
-        
+
         // Инициализация вкладок меню
         initMenuTabs();
-        
+
         // Инициализация свайпа для меню
         initMenuSwipe();
 
@@ -2291,7 +2320,7 @@ async function initApp() {
                 }
             }
         });
-        
+
         byId('loading').classList.add('hidden');
 
         // Загрузка каталога и инструкции при запуске
@@ -2334,17 +2363,17 @@ async function initApp() {
         } else {
             renderRoutesList();
         }
-        
+
         // Если есть route - запускаем навигатор (из каталога)
         if (routeParam && hasTParam) {
             openNavigatorWithRoute(routeParam, routeParam.includes('-'));
         }
-        // Если есть start_param - запускаем навигатор (из Telegram)
+        // Если есть start_param - запускаем навигатор (из Telegram/VK)
         else if (startParam && hasTParam) {
             openNavigatorWithRoute(startParam, startParam.includes('-'));
         }
     });
-    
+
     // Обработчики UI
     byId('menuBtn').addEventListener('click', openMenu);
     byId('createNewBtn').addEventListener('click', () => {
@@ -2368,7 +2397,7 @@ async function initApp() {
     byId('copyLinkBtn').addEventListener('click', copyRouteLink);
     byId('deleteRouteBtn').addEventListener('click', deleteRoute);
     byId('closeActionsBtn').addEventListener('click', closeRouteActions);
-    
+
     // Настройки навигатора
     byId('cfgTrigger').addEventListener('input', (e) => {
         APP.navConfig.TRIGGER_DIST = Number(e.target.value);

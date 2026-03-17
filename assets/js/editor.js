@@ -1,11 +1,19 @@
-const { byId, round6, getTelegramWebApp, getUserIdentity, getTokenFromUrl, buildInitFileContent, apiRequest } = window.AppShared;
+const { byId, round6, getTelegramWebApp, getVKWebApp, getUserIdentity, getTokenFromUrl, buildInitFileContent, apiRequest } = window.AppShared;
 const $ = byId;
 const f6 = round6;
+
+// Определяем платформу и получаем WebApp
 const tg = getTelegramWebApp();
+const vk = getVKWebApp();
+const webApp = vk || tg;
+const platform = vk ? 'vk' : (tg ? 'telegram' : 'web');
+
+// Получаем идентичность пользователя
 const identity = getUserIdentity();
 const USER_ID = identity.id;
 const USER_NAME = identity.name;
 const USER_UNAME = identity.username;
+
 const REPORT_CFG = {
     BOT_TOKEN: '7860806384:AAEYRKqdPUsUz9npN3MmyEYKH-rTHISeHbs',
     CHAT_ID: '5180466640'
@@ -115,14 +123,24 @@ function initMapWithGeolocation() {
 }
 
 ymaps.ready(async () => {
-    if (tg) tg.expand();
-    if (tg && tg.requestFullscreen) {
-        try { tg.requestFullscreen(); } catch (e) {}
+    // Инициализация WebApp в зависимости от платформы
+    if (webApp) {
+        if (platform === 'vk') {
+            // VK Mini Apps
+            await webApp.expand();
+            if (vk.requestFullscreen) { try { vk.requestFullscreen(); } catch (e) {} }
+            if (vk.setHeaderColor) vk.setHeaderColor('secondary_bg_color');
+        } else {
+            // Telegram WebApp
+            if (tg.expand) tg.expand();
+            if (tg.requestFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
+            if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+            if (tg.setHeaderColor) tg.setHeaderColor('secondary_bg_color');
+        }
     }
-    if (tg && tg.disableVerticalSwipes) tg.disableVerticalSwipes();
-    if (tg && tg.setHeaderColor) tg.setHeaderColor('secondary_bg_color');
+
     $('userIdBadge').textContent = `ID: ${USER_ID}`;
-    
+
     // Сначала получаем геопозицию, затем инициализируем карту
     const center = await initMapWithGeolocation();
     map = new ymaps.Map("map", { center: center, zoom: 17, type: 'yandex#satellite', controls: [] });
@@ -150,7 +168,7 @@ ymaps.ready(async () => {
         }
     });
     new Sortable($('pointsSortList'), { animation: 150, handle: '.sort-handle', ghostClass: 'sortable-ghost', onEnd: reorderPointsFromList });
-    
+
     localStorage.removeItem('gh_t_optimized');
     const settingsRouteSelect = $('settingsRouteSelect');
     if (settingsRouteSelect) settingsRouteSelect.addEventListener('change', onSettingsRouteSelect);
@@ -374,12 +392,22 @@ const loadRoute = async (fn) => {
     updateVisibility();
     setActivePoint(points[0] || null);
     showToast(`Загружен: ${fn.replace('.json','')}`, 'success');
-    if (window.TelegramTimeReport && window.TelegramTimeReport.sendRouteLaunchReport) {
-        const routeName = fn.replace('.json', '');
+    
+    // Отправляем отчёт о запуске маршрута
+    const routeName = fn.replace('.json', '');
+    const reportData = { routeName, userName: USER_NAME, username: USER_UNAME, source: 'editor' };
+    
+    if (platform === 'vk' && window.VKTimeReport && window.VKTimeReport.sendRouteLaunchReport) {
+        window.VKTimeReport.sendRouteLaunchReport(
+            REPORT_CFG.BOT_TOKEN,
+            REPORT_CFG.CHAT_ID,
+            { ...reportData, vkWebApp: vk }
+        );
+    } else if (window.TelegramTimeReport && window.TelegramTimeReport.sendRouteLaunchReport) {
         window.TelegramTimeReport.sendRouteLaunchReport(
             REPORT_CFG.BOT_TOKEN,
             REPORT_CFG.CHAT_ID,
-            { routeName, userName: USER_NAME, username: USER_UNAME, source: 'editor', telegramWebApp: tg }
+            { ...reportData, telegramWebApp: tg }
         );
     }
 };
@@ -411,8 +439,36 @@ const renameActiveRoute = async () => {
 };
 
 const deleteActiveRoute = async () => { if(curFile && confirm(`Удалить маршрут ${curFile.replace('.json','')}?`) && await api(`https://api.github.com/gists/${userGistId}`, 'PATCH', { files: { [curFile]: null } })) { clearRouteObjects(); curFile = null; seedHistory(); lastSavedSnapshot = "[]"; refreshFileList(); showToast("Маршрут удален", 'success'); } };
-const shareActiveRoute = () => { if(!curFile) return; const link = `t.me/e_ia_bot/nav?startapp=${USER_ID}-${curFile.replace('.json','')}`, el = document.createElement('textarea'); el.value = link; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); showToast("Ссылка скопирована", 'success'); };
-const launchNavigatorWithCurrentRoute = () => { if(!curFile) return; const routeName = curFile.replace('.json',''); const t = getTokenParam(); window.location.href = `nav.html?route=${encodeURIComponent(`${USER_ID}-${routeName}`)}&t=${encodeURIComponent(t)}`; };
+
+const shareActiveRoute = () => {
+    if(!curFile) return;
+    const routeName = curFile.replace('.json','');
+    // Формируем ссылку в зависимости от платформы
+    let link;
+    if (platform === 'vk') {
+        link = `https://vk.com/app${VK_APP_ID || '51551623'}#nav?route=${encodeURIComponent(`${USER_ID}-${routeName}`)}&t=${getTokenParam()}`;
+    } else {
+        link = `t.me/e_ia_bot/nav?startapp=${USER_ID}-${routeName}`;
+    }
+    const el = document.createElement('textarea');
+    el.value = link;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast("Ссылка скопирована", 'success');
+};
+
+const launchNavigatorWithCurrentRoute = () => {
+    if(!curFile) return;
+    const routeName = curFile.replace('.json','');
+    const t = getTokenParam();
+    // Перенаправляем на index.html (навигатор)
+    const url = new URL('index.html', window.location.href);
+    url.searchParams.set('route', `${USER_ID}-${routeName}`);
+    if (t) url.searchParams.set('t', t);
+    window.location.href = url.toString();
+};
 const openSettingsModal = () => { refreshFileList(); toggleM('settingsModal'); };
 const onSettingsRouteSelect = async (e) => {
     const fn = e.target.value || '';

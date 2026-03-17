@@ -4,8 +4,24 @@
   const byId = (id) => document.getElementById(id);
   const round6 = (n) => Math.round(n * 1e6) / 1e6;
 
+  // Определяем платформу
+  function getPlatform() {
+    const ua = navigator.userAgent;
+    if (ua.includes('VKApp')) return 'vk';
+    if (global.Telegram && global.Telegram.WebApp) return 'telegram';
+    return 'web';
+  }
+
   function getTelegramWebApp() {
     return global.Telegram && global.Telegram.WebApp ? global.Telegram.WebApp : null;
+  }
+
+  function getVKWebApp() {
+    return global.VKMiniApps && global.VKMiniApps.WebApp ? global.VKMiniApps.WebApp : null;
+  }
+
+  function getWebApp() {
+    return getVKWebApp() || getTelegramWebApp();
   }
 
   function getTelegramUser() {
@@ -13,7 +29,38 @@
     return tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
   }
 
-  function getUserIdentity() {
+  async function getVKUser() {
+    if (global.VKMiniApps && global.VKMiniApps.getUser) {
+      return await global.VKMiniApps.getUser();
+    }
+    return null;
+  }
+
+  async function getUser() {
+    const platform = getPlatform();
+    if (platform === 'vk') {
+      return await getVKUser();
+    }
+    return getTelegramUser();
+  }
+
+  async function getUserIdentity() {
+    const platform = getPlatform();
+    
+    if (platform === 'vk') {
+      if (global.VKMiniApps && global.VKMiniApps.getIdentity) {
+        return await global.VKMiniApps.getIdentity();
+      }
+      const vkUser = await getVKUser();
+      const fallbackId = localStorage.getItem('debug_uid') || ("vk_guest_" + Math.random().toString(36).slice(2, 7));
+      return {
+        id: vkUser ? vkUser.id : fallbackId,
+        name: vkUser ? (vkUser.first_name + (vkUser.last_name ? " " + vkUser.last_name : "")) : "Guest",
+        username: vkUser ? `vk${vkUser.id}` : ""
+      };
+    }
+    
+    // Telegram или веб
     const tgUser = getTelegramUser();
     const fallbackId = localStorage.getItem('debug_uid') || ("guest_" + Math.random().toString(36).slice(2, 7));
     return {
@@ -29,6 +76,12 @@
   }
 
   function buildInitFileContent(extra = {}) {
+    const platform = getPlatform();
+    
+    if (platform === 'vk' && global.VKMiniApps && global.VKMiniApps.buildInitFileContent) {
+      return global.VKMiniApps.buildInitFileContent(extra);
+    }
+    
     const tg = getTelegramWebApp();
     const initUnsafe = tg && tg.initDataUnsafe ? tg.initDataUnsafe : null;
     const user = initUnsafe && initUnsafe.user ? initUnsafe.user : null;
@@ -38,7 +91,7 @@
     const uname = user && user.username ? `@${user.username}` : '-';
     const userId = user && user.id ? String(user.id) : '-';
     const isPremium = user && typeof user.is_premium === 'boolean' ? user.is_premium : false;
-    const platform = tg && tg.platform ? tg.platform : '-';
+    const platformStr = tg && tg.platform ? tg.platform : '-';
     const chatType = initUnsafe && initUnsafe.chat_type ? initUnsafe.chat_type : '-';
     const chatInstance = initUnsafe && initUnsafe.chat_instance ? String(initUnsafe.chat_instance) : '-';
     const createdAt = new Intl.DateTimeFormat('ru-RU', {
@@ -55,7 +108,7 @@
       `👤 User: ${fullName} (${uname})`,
       `🆔 ID: ${userId}`,
       `⭐ Premium: ${isPremium ? 'yes' : 'no'}`,
-      `📱 Platform: ${platform}`,
+      `📱 Platform: ${platformStr}`,
       `💬 Chat Type: ${chatType}`,
       `🔗 Chat Instance: ${chatInstance}`,
       `🕒 Created At (Moscow): ${createdAt}`
@@ -80,8 +133,13 @@
     TOKEN_SUFFIX,
     byId,
     round6,
+    getPlatform,
     getTelegramWebApp,
+    getVKWebApp,
+    getWebApp,
     getTelegramUser,
+    getVKUser,
+    getUser,
     getUserIdentity,
     getTokenFromUrl,
     buildInitFileContent,
