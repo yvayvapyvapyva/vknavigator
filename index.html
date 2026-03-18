@@ -8,11 +8,8 @@
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
     <!-- Яндекс.Карты -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=YANDEX_API_KEY&lang=ru_RU&suppressMapOpenBlock=true"></script>
-    <!-- VK Adapter и общие скрипты -->
-    <script src="assets/js/vk-adapter.js"></script>
-    <script src="assets/js/shared.js"></script>
-    <script src="assets/js/vk-report.js"></script>
     <link rel="stylesheet" href="assets/css/shared.css">
+    <script src="assets/js/shared.js"></script>
     <style>
     :root {
         --bg: #050505;
@@ -770,26 +767,12 @@
 
     <!-- Вкладки меню -->
     <div class="menu-tabs">
-        <button class="menu-tab active" data-tab="routes">Ваши маршруты</button>
-        <button class="menu-tab" data-tab="catalog">Каталог</button>
+        <button class="menu-tab active" data-tab="catalog">Каталог</button>
         <button class="menu-tab" data-tab="instruction">Инструкция</button>
     </div>
 
-    <!-- Вкладка: Ваши маршруты -->
-    <div class="menu-tab-content active" id="tab-routes">
-        <div class="routes-list-wrapper">
-            <div id="routesList" class="routes-list"></div>
-        </div>
-        <div class="menu-bottom-btn">
-            <button id="createNewBtn" class="menu-btn menu-btn-green">
-                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/></svg>
-                Создать новый маршрут
-            </button>
-        </div>
-    </div>
-    
     <!-- Вкладка: Каталог -->
-    <div class="menu-tab-content" id="tab-catalog">
+    <div class="menu-tab-content active" id="tab-catalog">
         <div class="routes-list-wrapper">
             <div id="catalogList" class="routes-list"></div>
         </div>
@@ -802,48 +785,6 @@
             <div id="instructionText" class="instruction-text" style="font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.8); white-space: pre-wrap;"></div>
         </div>
     </div>
-    </div>
-</div>
-
-<!-- Модальное окно создания маршрута -->
-<div id="createModal" class="modal-overlay top-aligned" style="display:none;">
-    <div class="modal-sheet">
-        <div class="modal-title">Новый маршрут</div>
-        <input id="routeNameInput" class="input" type="text" placeholder="Введите название" oninput="this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '')">
-        <div class="hint">Допустимы только английские буквы, цифры и знак нижнего подчеркивания.</div>
-        <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 12px;">
-            <button id="cancelCreateBtn" class="modal-btn modal-btn-muted">Отмена</button>
-            <button id="confirmCreateBtn" class="modal-btn modal-btn-green">Создать</button>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно действий с маршрутом -->
-<div id="routeActionsModal" class="modal-overlay" style="display:none;">
-    <div class="modal-sheet" style="max-width: 400px;">
-        <div class="modal-title">Действия с маршрутом</div>
-        <button id="openEditorBtn" class="modal-btn">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
-            Открыть в редакторе
-        </button>
-        <button id="openNavigatorBtn" class="modal-btn modal-btn-green">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" fill="currentColor"/></svg>
-            Запустить навигатор
-        </button>
-        <div class="modal-divider"></div>
-        <button id="renameRouteBtn" class="modal-btn">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
-            Переименовать
-        </button>
-        <button id="copyLinkBtn" class="modal-btn">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" fill="currentColor"/></svg>
-            Копировать ссылку
-        </button>
-        <button id="deleteRouteBtn" class="modal-btn modal-btn-danger">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg>
-            Удалить маршрут
-        </button>
-        <button id="closeActionsBtn" class="modal-btn modal-btn-muted">Закрыть</button>
     </div>
 </div>
 
@@ -957,72 +898,13 @@
 // ============================================
 // ОБЩИЕ УТИЛИТЫ
 // ============================================
-const TOKEN_SUFFIX = "AEIlGh23bO2ygpYMlJrB9MOA42UceJ";
 const byId = (id) => document.getElementById(id);
-
-function getTelegramWebApp() {
-    return window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-}
-
-function getTelegramUser() {
-    const tg = getTelegramWebApp();
-    return tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
-}
-
-function getUserIdentity() {
-    const tgUser = getTelegramUser();
-    const fallbackId = localStorage.getItem('debug_uid') || ("guest_" + Math.random().toString(36).slice(2, 7));
-    return {
-        id: tgUser ? tgUser.id : fallbackId,
-        name: tgUser ? (tgUser.first_name + (tgUser.last_name ? " " + tgUser.last_name : "")) : "Guest",
-        username: tgUser && tgUser.username ? `@${tgUser.username}` : ""
-    };
-}
-
-function getTokenFromUrl() {
-    const prefix = (new URLSearchParams(location.search).get('t') || '').slice(0, 10);
-    return prefix.length < 10 ? null : prefix + TOKEN_SUFFIX;
-}
-
-function getTokenParam() {
-    return new URLSearchParams(location.search).get('t') || '';
-}
-
-function buildInitFileContent() {
-    const tg = getTelegramWebApp();
-    const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
-    const fullName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'Unknown';
-    const uname = user && user.username ? `@${user.username}` : '-';
-    const userId = user && user.id ? String(user.id) : '-';
-    const now = new Intl.DateTimeFormat('ru-RU', {
-        timeZone: 'Europe/Moscow',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-    }).format(new Date());
-    return `👤 User: ${fullName} (${uname})\n🆔 ID: ${userId}\n🕒 ${now} (Moscow)`;
-}
-
-async function apiRequest(token, url, method = 'GET', body = null) {
-    if (!token) return null;
-    const res = await fetch(url, {
-        method,
-        headers: {
-            'Authorization': `token ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: body ? JSON.stringify(body) : null
-    });
-    if (!res.ok) return null;
-    return res.status === 204 ? true : res.json();
-}
 
 // ============================================
 // ГЛОБАЛЬНОЕ СОСТОЯНИЕ
 // ============================================
 const APP = {
-    token: null,
-    user: getUserIdentity(),
-    gistId: null,
+    user: { id: 'catalog_user', name: 'Гость' },
     routes: [],
     selectedRoute: null,
     map: null,
@@ -1046,7 +928,6 @@ const APP = {
     catalogData: null
 };
 
-const tg = getTelegramWebApp();
 const COLORS = {
     Gold: { hex: '#FFD700', label: 'Маневры на перекрестке' },
     Blue: { hex: '#007AFF', label: 'Разворот вне перекрестка' },
@@ -1096,32 +977,22 @@ let menuTouchCurrentY = 0;
 let menuIsDragging = false;
 
 function openMenu() {
-    // Маршруты уже загружены при инициализации, просто отображаем их
-    renderRoutesList();
-    // Активируем первую вкладку
-    switchMenuTab('routes');
+    // Активируем вкладку каталога
+    switchMenuTab('catalog');
     byId('sideMenu').classList.add('visible');
     byId('menuOverlay').classList.add('visible');
     document.body.style.overflow = 'hidden';
-    
-    // Включаем свайпы Telegram при открытом меню
-    const tg = getTelegramWebApp();
-    if (tg && tg.enableVerticalSwipes) tg.enableVerticalSwipes();
 }
 
 function closeMenu() {
     byId('sideMenu').classList.remove('visible');
     byId('menuOverlay').classList.remove('visible');
     document.body.style.overflow = '';
-    
+
     // Принудительно сбрасываем transform
     const menu = byId('sideMenu');
     menu.style.transition = '';
     menu.style.transform = '';
-    
-    // Отключаем свайпы Telegram при закрытом меню
-    const tg = getTelegramWebApp();
-    if (tg && tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 }
 
 // Обработка свайпа для закрытия меню
@@ -1315,71 +1186,8 @@ function toggleAutoCenter() {
 }
 
 // ============================================
-// API GITHUB GISTS
+// API GITHUB GISTS (только для каталога)
 // ============================================
-async function findUserGist() {
-    console.log('Поиск gist для пользователя ID:', APP.user.id);
-    let allGists = [], page = 1, perPage = 100;
-    while (true) {
-        const gists = await apiRequest(APP.token, `https://api.github.com/gists?per_page=${perPage}&page=${page}&t=${Date.now()}`);
-        console.log(`Страница ${page}: получено gists:`, gists ? gists.length : 0);
-        if (!gists || gists.length === 0) break;
-        allGists = allGists.concat(gists);
-        if (gists.length < perPage) break;
-        page++;
-    }
-    console.log('Всего gists загружено:', allGists.length);
-    if (!allGists) return null;
-    
-    // Ищем gist с описанием, содержащим [USER_ID]
-    const existing = allGists.find((g) => {
-        const desc = g.description || '';
-        const match = desc.includes(`[${APP.user.id}]`);
-        console.log(`Gist ${g.id}: description="${desc}", match=${match}`);
-        return match;
-    });
-    
-    if (existing) {
-        console.log('Найден gist:', existing.id, 'description:', existing.description);
-    } else {
-        console.log('Gist не найден. Доступные gists:');
-        allGists.forEach(g => console.log(`  - ${g.id}: "${g.description || 'без описания'}"`));
-    }
-    
-    return existing ? existing.id : null;
-}
-
-async function ensureUserGist() {
-    if (APP.gistId) return true;
-    const existingId = await findUserGist();
-    if (existingId) { APP.gistId = existingId; return true; }
-    const created = await apiRequest(APP.token, 'https://api.github.com/gists', 'POST', {
-        description: `[${APP.user.id}] User: ${APP.user.name} ${APP.user.username || ''}`.trim(),
-        public: true,
-        files: { '.init': { content: buildInitFileContent() } }
-    });
-    if (!created) return false;
-    APP.gistId = created.id;
-    return true;
-}
-
-async function fetchRoutes() {
-    if (!APP.gistId) {
-        console.log('fetchRoutes: gistId не установлен');
-        return [];
-    }
-    console.log('Загрузка маршрутов из gist:', APP.gistId);
-    const gist = await apiRequest(APP.token, `https://api.github.com/gists/${APP.gistId}?t=${Date.now()}`);
-    if (!gist) {
-        console.log('fetchRoutes: не удалось загрузить gist');
-        return [];
-    }
-    console.log('Gist файлы:', Object.keys(gist.files || {}));
-    const routes = Object.keys(gist.files || {}).filter((fn) => fn.endsWith('.json')).sort((a, b) => a.localeCompare(b));
-    console.log('Найдено маршрутов:', routes.length, routes);
-    return routes;
-}
-
 async function fetchAllGists(username) {
     let allGists = [], page = 1, perPage = 100;
     while (true) {
@@ -1404,147 +1212,13 @@ async function fetchAllGists(username) {
 }
 
 // ============================================
-// МАРШРУТЫ - ДЕЙСТВИЯ
+// МАРШРУТЫ - КАТАЛОГ
 // ============================================
-function renderRoutesList() {
-    const list = byId('routesList');
-    if (!list) return;
-    if (!APP.routes.length) {
-        list.innerHTML = '<div style="padding:14px;text-align:center;color:rgba(255,255,255,0.5);font-size:13px;">Маршрутов нет</div>';
-        return;
-    }
-    list.innerHTML = APP.routes.map((file) => {
-        const name = file.replace('.json', '');
-        return `
-            <div class="route-item" data-file="${file}">
-                <span class="route-item-name">${name}</span>
-                <button class="route-item-btn settings-btn" title="Настройки">
-                    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" fill="currentColor"/></svg>
-                </button>
-            </div>
-        `;
-    }).join('');
-
-    list.querySelectorAll('.route-item').forEach((item) => {
-        const file = item.dataset.file;
-        // Клик на название маршрута - запуск навигатора
-        item.addEventListener('click', (e) => {
-            if (!e.target.closest('.route-item-btn')) {
-                APP.selectedRoute = file;
-                openNavigatorWithRoute(file);
-            }
-        });
-        // Клик на шестерёнку - открытие меню действий
-        item.querySelector('.settings-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            APP.selectedRoute = file;
-            openRouteActions();
-        });
-    });
-}
-
-function openRouteActions() {
-    if (!APP.selectedRoute) { showToast('Выберите маршрут', 'error'); return; }
-    byId('routeActionsModal').style.display = 'flex';
-    closeMenu();
-}
-
-function closeRouteActions() {
-    byId('routeActionsModal').style.display = 'none';
-}
-
-async function createRoute() {
-    const name = (byId('routeNameInput').value || '').trim().replace(/[^a-zA-Z0-9_]/g, '');
-    if (!name) { showToast('Введите название маршрута', 'error'); return; }
-    const gistOk = await ensureUserGist();
-    if (!gistOk) { showToast('Ошибка подключения к GitHub', 'error'); return; }
-    const fileName = `${name}.json`;
-    if (APP.routes.includes(fileName)) { showToast('Маршрут с таким именем уже существует', 'error'); return; }
-    const ok = await apiRequest(APP.token, `https://api.github.com/gists/${APP.gistId}`, 'PATCH', {
-        files: { [fileName]: { content: '[]' } }
-    });
-    if (!ok) { showToast('Не удалось создать маршрут', 'error'); return; }
-    
-    // Закрываем модальное окно создания
-    byId('createModal').style.display = 'none';
-    
-    // Обновляем список маршрутов
-    APP.routes = await fetchRoutes();
-    renderRoutesList();
-    
-    // Перенаправляем в редактор (editor.html) с параметрами маршрута
-    const tokenParam = getTokenParam();
-    const routeName = fileName.replace('.json', '');
-    const url = new URL('editor.html', window.location.href);
-    url.searchParams.set('route', routeName);
-    if (tokenParam) url.searchParams.set('t', tokenParam);
-    window.location.href = url.toString();
-}
-
-async function renameRoute() {
-    if (!APP.selectedRoute) return;
-    const currentName = APP.selectedRoute.replace('.json', '');
-    const nextRaw = prompt('Новое название маршрута (разрешены: a-z, 0-9, _)', currentName);
-    if (nextRaw === null) return;
-    const nextName = nextRaw.trim().replace(/[^a-zA-Z0-9_]/g, '');
-    if (!nextName || nextName === currentName) return;
-    const nextFile = `${nextName}.json`;
-    if (APP.routes.includes(nextFile)) { showToast('Маршрут с таким именем уже существует', 'error'); return; }
-    const gist = await apiRequest(APP.token, `https://api.github.com/gists/${APP.gistId}?t=${Date.now()}`);
-    if (!gist || !gist.files || !gist.files[APP.selectedRoute]) { showToast('Не удалось загрузить данные', 'error'); return; }
-    const content = gist.files[APP.selectedRoute].content || '[]';
-    const ok = await apiRequest(APP.token, `https://api.github.com/gists/${APP.gistId}`, 'PATCH', {
-        files: { [APP.selectedRoute]: null, [nextFile]: { content } }
-    });
-    if (!ok) { showToast('Не удалось переименовать', 'error'); return; }
-    APP.routes = await fetchRoutes();
-    APP.selectedRoute = nextFile;
-    closeRouteActions();
-    showToast('Маршрут переименован', 'success');
-}
-
-async function deleteRoute() {
-    if (!APP.selectedRoute) return;
-    const routeName = APP.selectedRoute.replace('.json', '');
-    if (!confirm(`Удалить маршрут "${routeName}"?`)) return;
-    const ok = await apiRequest(APP.token, `https://api.github.com/gists/${APP.gistId}`, 'PATCH', {
-        files: { [APP.selectedRoute]: null }
-    });
-    if (!ok) { showToast('Не удалось удалить', 'error'); return; }
-    APP.routes = await fetchRoutes();
-    APP.selectedRoute = null;
-    renderRoutesList();
-    closeRouteActions();
-    showToast('Маршрут удалён', 'success');
-}
-
-async function copyRouteLink() {
-    if (!APP.selectedRoute) return;
-    const routeName = APP.selectedRoute.replace('.json', '');
-    const link = `https://t.me/e_ia_bot/nav?startapp=${APP.user.id}-${routeName}`;
-    try { await navigator.clipboard.writeText(link); showToast('Ссылка скопирована', 'success'); }
-    catch (e) { prompt('Скопируйте ссылку вручную:', link); }
-    closeRouteActions();
-}
-
-function openEditorWithRoute(file) {
-    // Перенаправляем в редактор (editor.html) с параметрами маршрута
-    const tokenParam = getTokenParam();
-    const routeName = file.replace('.json', '');
-    const url = new URL('editor.html', window.location.href);
-    url.searchParams.set('route', routeName);
-    if (tokenParam) url.searchParams.set('t', tokenParam);
-    window.location.href = url.toString();
-}
-
-function openNavigatorWithRoute(file, isCatalog = false) {
+function openNavigatorWithRoute(file, isCatalog = true) {
     APP.selectedRoute = file;
     loadNavigatorRoute(file, isCatalog);
 }
 
-// ============================================
-// КАТАЛОГ
-// ============================================
 function loadCatalog() {
     const list = byId('catalogList');
     if (!list) return;
@@ -1647,12 +1321,12 @@ function toggleNavGistInfo() {
     overlay.classList.toggle('visible');
 }
 
-async function loadNavigatorRoute(file, isCatalog = false) {
+async function loadNavigatorRoute(file, isCatalog = true) {
     // Показываем статус загрузки
     const cacheStatus = byId('cacheStatus');
     cacheStatus.style.display = 'block';
     cacheStatus.textContent = 'Загрузка маршрута...';
-    
+
     let url = null;
     let gistDescription = 'Описание отсутствует';
     let actualFileName = file;
@@ -1686,27 +1360,12 @@ async function loadNavigatorRoute(file, isCatalog = false) {
                 console.error('Gist не найден для ID:', targetId);
             }
         } catch (e) { console.error('Ошибка поиска gist:', e); }
-    } else {
-        if (!APP.gistId) { showToast('Сначала создайте маршрут', 'error'); return; }
-        try {
-            const gist = await apiRequest(APP.token, `https://api.github.com/gists/${APP.gistId}?t=${Date.now()}`);
-            if (gist && gist.files[file]) {
-                url = gist.files[file].raw_url;
-                gistDescription = gist.description || 'Описание отсутствует';
-                // Используем точное имя файла из gist (с учётом регистра)
-                actualFileName = file.replace('.json', '');
-            }
-        } catch (e) { console.error('Ошибка загрузки gist:', e); }
     }
-    
+
     // Проверка: если URL не получен, показываем подробную ошибку
     if (!url) {
-        if (isCatalog) {
-            console.error('Каталог: не удалось получить URL маршрута', file);
-            showToast('Маршрут не найден в каталоге. Проверьте доступность маршрута.', 'error', 4000);
-        } else {
-            showToast('Ошибка загрузки маршрута', 'error');
-        }
+        console.error('Каталог: не удалось получить URL маршрута', file);
+        showToast('Маршрут не найден в каталоге. Проверьте доступность маршрута.', 'error', 4000);
         return;
     }
     
@@ -2223,54 +1882,33 @@ document.addEventListener('visibilitychange', () => {
 // ИНИЦИАЛИЗАЦИЯ
 // ============================================
 async function initApp() {
-    // Инициализируем VK адаптер или используем Telegram
+    // Инициализируем VK Mini Apps
     const vkApp = window.VKMiniApps ? window.VKMiniApps.WebApp : null;
-    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-    const webApp = vkApp || tg;
 
-    if (webApp) {
-        if (vkApp) {
-            // VK Mini Apps
-            await webApp.expand();
-            if (vkApp.requestFullscreen) { try { vkApp.requestFullscreen(); } catch (e) {} }
-            if (vkApp.setHeaderColor) vkApp.setHeaderColor('secondary_bg_color');
-        } else {
-            // Telegram WebApp
-            if (tg.expand) tg.expand();
-            if (tg.requestFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
-            if (tg.setHeaderColor) tg.setHeaderColor('secondary_bg_color');
-            if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
-        }
+    if (vkApp) {
+        await vkApp.expand();
+        if (vkApp.requestFullscreen) { try { vkApp.requestFullscreen(); } catch (e) {} }
+        if (vkApp.setHeaderColor) vkApp.setHeaderColor('secondary_bg_color');
 
         // Пробуем активировать Wake Lock сразу после expand()
         wakeFromUser();
     }
 
-    APP.token = getTokenFromUrl();
     console.log('=== ИНИЦИАЛИЗАЦИЯ ===');
-    console.log('Платформа:', window.VKMiniApps ? 'VK Mini Apps' : (tg ? 'Telegram WebApp' : 'Веб'));
-    console.log('Токен:', APP.token ? 'получен (' + APP.token.length + ' символов)' : 'НЕ ПОЛУЧЕН');
-    console.log('User ID:', APP.user.id);
-    console.log('User Name:', APP.user.name);
+    console.log('Платформа:', window.VKMiniApps ? 'VK Mini Apps' : 'Веб');
     console.log('URL params:', location.search);
 
-    // Обработка start_param для прямого запуска навигатора
+    // Обработка параметров URL для запуска навигатора
     const urlParams = new URLSearchParams(location.search);
     let startParam = urlParams.get('startapp');
-    
+
     // Для VK используем vk_ref или startapp
     if (window.VKMiniApps && !startParam) {
         startParam = urlParams.get('vk_ref') || urlParams.get('vk_launch');
     }
-    
-    // Для Telegram используем initDataUnsafe.start_param
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
-        startParam = tg.initDataUnsafe.start_param;
-    }
-    
+
     const routeParam = urlParams.get('route'); // Параметр route для запуска навигатора
-    const hasTParam = urlParams.has('t');
-    console.log('hasTParam:', hasTParam, 'startParam:', startParam, 'routeParam:', routeParam);
+    console.log('startParam:', startParam, 'routeParam:', routeParam);
 
     // Обработчики кликов для Wake Lock (дублирование на случай если первый вызов не сработал)
     document.addEventListener('click', wakeFromUser);
@@ -2327,76 +1965,18 @@ async function initApp() {
         loadCatalog();
         loadInstruction();
 
-        // Поиск gist пользователя и загрузка маршрутов
-        if (APP.token) {
-            findUserGist().then(id => {
-                if (id) {
-                    APP.gistId = id;
-                    fetchRoutes().then((routes) => {
-                        APP.routes = routes; // Сохраняем маршруты в APP.routes
-                        renderRoutesList();
-                        console.log('Маршруты загружены:', APP.routes.length);
-
-                        // Приветственное сообщение с количеством маршрутов
-                        const userName = APP.user.name || 'Пользователь';
-                        const routesCount = APP.routes.length;
-                        const welcomeMsg = `Здравствуйте, ${userName}!\nУ вас маршрутов: ${routesCount}`;
-                        showToast(welcomeMsg, 'info', 2000);
-                    });
-                } else {
-                    // Gist не найден - показываем пустой список
-                    APP.gistId = null;
-                    APP.routes = [];
-                    renderRoutesList();
-                    console.log('Gist не найден, создайте первый маршрут');
-
-                    // Приветственное сообщение для нового пользователя
-                    const userName = APP.user.name || 'Пользователь';
-                    showToast(`Здравствуйте, ${userName}!\nУ вас маршрутов: 0`, 'info', 2000);
-                }
-            }).catch(err => {
-                console.error('Ошибка поиска gist:', err);
-                renderRoutesList();
-                const userName = APP.user.name || 'Пользователь';
-                showToast(`Здравствуйте, ${userName}!\nУ вас маршрутов: 0`, 'info', 2000);
-            });
-        } else {
-            renderRoutesList();
-        }
-
         // Если есть route - запускаем навигатор (из каталога)
-        if (routeParam && hasTParam) {
+        if (routeParam) {
             openNavigatorWithRoute(routeParam, routeParam.includes('-'));
         }
         // Если есть start_param - запускаем навигатор (из Telegram/VK)
-        else if (startParam && hasTParam) {
+        else if (startParam) {
             openNavigatorWithRoute(startParam, startParam.includes('-'));
         }
     });
 
     // Обработчики UI
     byId('menuBtn').addEventListener('click', openMenu);
-    byId('createNewBtn').addEventListener('click', () => {
-        byId('createModal').style.display = 'flex';
-        byId('routeNameInput').value = '';
-        closeMenu();
-    });
-    byId('cancelCreateBtn').addEventListener('click', () => {
-        byId('createModal').style.display = 'none';
-    });
-    byId('confirmCreateBtn').addEventListener('click', createRoute);
-    byId('openEditorBtn').addEventListener('click', () => {
-        closeRouteActions();
-        setTimeout(() => openEditorWithRoute(APP.selectedRoute), 100);
-    });
-    byId('openNavigatorBtn').addEventListener('click', () => {
-        closeRouteActions();
-        setTimeout(() => openNavigatorWithRoute(APP.selectedRoute), 100);
-    });
-    byId('renameRouteBtn').addEventListener('click', renameRoute);
-    byId('copyLinkBtn').addEventListener('click', copyRouteLink);
-    byId('deleteRouteBtn').addEventListener('click', deleteRoute);
-    byId('closeActionsBtn').addEventListener('click', closeRouteActions);
 
     // Настройки навигатора
     byId('cfgTrigger').addEventListener('input', (e) => {
