@@ -6,6 +6,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- VK Mini Apps SDK -->
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <script>
+        // Инициализируем VK Bridge сразу после загрузки
+        window.vkBridgeReady = false;
+        
+        function initVKBridge() {
+            if (window.vkBridge) {
+                vkBridge.send('VKWebAppInit')
+                    .then(function() {
+                        console.log('VK Bridge инициализирован');
+                        window.vkBridgeReady = true;
+                    })
+                    .catch(function(e) {
+                        console.log('VKWebAppInit error:', e);
+                        window.vkBridgeReady = true; // Всё равно считаем готовым
+                    });
+            } else {
+                console.log('VK Bridge не найден, используем веб-версию');
+                window.vkBridgeReady = true;
+            }
+        }
+        
+        // Пробуем инициализировать сразу
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initVKBridge);
+        } else {
+            initVKBridge();
+        }
+    </script>
     <!-- Яндекс.Карты -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=YANDEX_API_KEY&lang=ru_RU&suppressMapOpenBlock=true"></script>
     <link rel="stylesheet" href="assets/css/shared.css">
@@ -969,6 +997,17 @@ function showToast(text, type = 'info', duration = 2000) {
     }, duration);
 }
 
+function showError(message) {
+    console.error('Error:', message);
+    const loading = byId('loading');
+    const errorMsg = byId('errorMsg');
+    if (loading) loading.classList.add('hidden');
+    if (errorMsg) {
+        errorMsg.textContent = message;
+        errorMsg.style.display = 'block';
+    }
+}
+
 // ============================================
 // МЕНЮ
 // ============================================
@@ -1883,19 +1922,45 @@ document.addEventListener('visibilitychange', () => {
 // ============================================
 async function initApp() {
     // Инициализируем VK Mini Apps
-    const vkApp = window.VKMiniApps ? window.VKMiniApps.WebApp : null;
+    const vkBridge = window.vkBridge || window.VKMiniApps;
+    const vkApp = vkBridge ? {
+        expand: function() {
+            return vkBridge.send('VKWebAppSetViewSettings', {
+                status_bar_style: 'dark',
+                action_bar_color: '#0f1115'
+            }).catch(function(e) {
+                console.log('expand error:', e);
+            });
+        },
+        requestFullscreen: function() {
+            return vkBridge.send('VKWebAppFullscreen').catch(function(e) {
+                console.log('fullscreen error:', e);
+            });
+        },
+        setHeaderColor: function(color) {
+            return vkBridge.send('VKWebAppSetViewSettings', {
+                status_bar_style: 'dark'
+            }).catch(function(e) {
+                console.log('setHeaderColor error:', e);
+            });
+        }
+    } : null;
 
     if (vkApp) {
-        await vkApp.expand();
-        if (vkApp.requestFullscreen) { try { vkApp.requestFullscreen(); } catch (e) {} }
-        if (vkApp.setHeaderColor) vkApp.setHeaderColor('secondary_bg_color');
+        try {
+            await vkApp.expand();
+            await vkApp.requestFullscreen();
+            vkApp.setHeaderColor('secondary_bg_color');
+        } catch (e) {
+            console.log('VK setup error:', e);
+        }
 
         // Пробуем активировать Wake Lock сразу после expand()
         wakeFromUser();
     }
 
     console.log('=== ИНИЦИАЛИЗАЦИЯ ===');
-    console.log('Платформа:', window.VKMiniApps ? 'VK Mini Apps' : 'Веб');
+    console.log('Платформа:', vkBridge ? 'VK Mini Apps' : 'Веб');
     console.log('URL params:', location.search);
 
     // Обработка параметров URL для запуска навигатора
@@ -1903,7 +1968,7 @@ async function initApp() {
     let startParam = urlParams.get('startapp');
 
     // Для VK используем vk_ref или startapp
-    if (window.VKMiniApps && !startParam) {
+    if (vkBridge && !startParam) {
         startParam = urlParams.get('vk_ref') || urlParams.get('vk_launch');
     }
 
@@ -1915,63 +1980,73 @@ async function initApp() {
     document.addEventListener('touchstart', wakeFromUser);
 
     // Инициализация карты
-    ymaps.ready(() => {
-        APP.map = new ymaps.Map('map', {
-            center: [56.3399, 43.9332],
-            zoom: 17,
-            type: 'yandex#satellite',
-            controls: []
-        });
+    if (!window.ymaps) {
+        showError('Яндекс.Карты не загрузились. Проверьте API ключ.');
+        return;
+    }
+    
+    ymaps.ready(function() {
+        try {
+            APP.map = new ymaps.Map('map', {
+                center: [56.3399, 43.9332],
+                zoom: 17,
+                type: 'yandex#satellite',
+                controls: []
+            });
 
-        APP.userMarker = new ymaps.Placemark([0, 0], {}, {
-            iconLayout: 'default#image',
-            iconImageHref: getUserLocSvg(0),
-            iconImageSize: [40, 40],
-            iconImageOffset: [-20, -20],
-            zIndex: 5000,
-            visible: false
-        });
-        APP.map.geoObjects.add(APP.userMarker);
+            APP.userMarker = new ymaps.Placemark([0, 0], {}, {
+                iconLayout: 'default#image',
+                iconImageHref: getUserLocSvg(0),
+                iconImageSize: [40, 40],
+                iconImageOffset: [-20, -20],
+                zIndex: 5000,
+                visible: false
+            });
+            APP.map.geoObjects.add(APP.userMarker);
 
-        initGeolocation();
+            initGeolocation();
 
-        // Инициализация вкладок меню
-        initMenuTabs();
+            // Инициализация вкладок меню
+            initMenuTabs();
 
-        // Инициализация свайпа для меню
-        initMenuSwipe();
+            // Инициализация свайпа для меню
+            initMenuSwipe();
 
-        // Обработчик клика для навигатора
-        APP.map.events.add('click', (e) => {
-            if (APP.navMode) {
-                // В режиме навигатора закрываем оверлеи при клике на карту
-                byId('navGistInfoOverlay').classList.remove('visible');
-                // Закрываем панель выбора точки
-                const selectionHud = byId('selectionHud');
-                if (selectionHud.style.display === 'flex') {
-                    closeNavSelection();
+            // Обработчик клика для навигатора
+            APP.map.events.add('click', (e) => {
+                if (APP.navMode) {
+                    // В режиме навигатора закрываем оверлеи при клике на карту
+                    byId('navGistInfoOverlay').classList.remove('visible');
+                    // Закрываем панель выбора точки
+                    const selectionHud = byId('selectionHud');
+                    if (selectionHud.style.display === 'flex') {
+                        closeNavSelection();
+                    }
+                    // Закрываем список точек
+                    const navPointsMenu = byId('navPointsMenu');
+                    if (navPointsMenu.style.display === 'flex') {
+                        navPointsMenu.style.display = 'none';
+                    }
                 }
-                // Закрываем список точек
-                const navPointsMenu = byId('navPointsMenu');
-                if (navPointsMenu.style.display === 'flex') {
-                    navPointsMenu.style.display = 'none';
-                }
+            });
+
+            byId('loading').classList.add('hidden');
+
+            // Загрузка каталога и инструкции при запуске
+            loadCatalog();
+            loadInstruction();
+
+            // Если есть route - запускаем навигатор (из каталога)
+            if (routeParam) {
+                openNavigatorWithRoute(routeParam, routeParam.includes('-'));
             }
-        });
-
-        byId('loading').classList.add('hidden');
-
-        // Загрузка каталога и инструкции при запуске
-        loadCatalog();
-        loadInstruction();
-
-        // Если есть route - запускаем навигатор (из каталога)
-        if (routeParam) {
-            openNavigatorWithRoute(routeParam, routeParam.includes('-'));
-        }
-        // Если есть start_param - запускаем навигатор (из Telegram/VK)
-        else if (startParam) {
-            openNavigatorWithRoute(startParam, startParam.includes('-'));
+            // Если есть start_param - запускаем навигатор (из VK)
+            else if (startParam) {
+                openNavigatorWithRoute(startParam, startParam.includes('-'));
+            }
+        } catch (e) {
+            console.error('Ошибка инициализации карты:', e);
+            showError('Ошибка при инициализации карты: ' + e.message);
         }
     });
 
@@ -1991,7 +2066,25 @@ async function initApp() {
 }
 
 // Запуск
-initApp();
+// Ждём загрузки VK Bridge перед инициализацией приложения
+function startApp() {
+    // Ждём максимум 3 секунды для загрузки VK Bridge
+    let waitCount = 0;
+    const waitInterval = setInterval(function() {
+        if (window.vkBridgeReady || waitCount > 30) {
+            clearInterval(waitInterval);
+            initApp();
+        }
+        waitCount++;
+    }, 100);
+}
+
+// Запускаем после загрузки DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApp);
+} else {
+    startApp();
+}
 </script>
 </body>
 </html>
