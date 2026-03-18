@@ -6,34 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- VK Mini Apps SDK -->
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-    <script>
-        // Инициализируем VK Bridge сразу после загрузки
-        window.vkBridgeReady = false;
-        
-        function initVKBridge() {
-            if (window.vkBridge) {
-                vkBridge.send('VKWebAppInit')
-                    .then(function() {
-                        console.log('VK Bridge инициализирован');
-                        window.vkBridgeReady = true;
-                    })
-                    .catch(function(e) {
-                        console.log('VKWebAppInit error:', e);
-                        window.vkBridgeReady = true; // Всё равно считаем готовым
-                    });
-            } else {
-                console.log('VK Bridge не найден, используем веб-версию');
-                window.vkBridgeReady = true;
-            }
-        }
-        
-        // Пробуем инициализировать сразу
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initVKBridge);
-        } else {
-            initVKBridge();
-        }
-    </script>
     <!-- Яндекс.Карты -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=YANDEX_API_KEY&lang=ru_RU&suppressMapOpenBlock=true"></script>
     <link rel="stylesheet" href="assets/css/shared.css">
@@ -409,6 +381,7 @@
     }
     .modal-btn:active { transform: scale(0.98); }
     .modal-btn-green { background: rgba(52,199,89,0.42); border-color: rgba(103,255,153,0.45); }
+    .modal-btn-blue { background: rgba(61,160,255,0.48); border-color: rgba(90,180,255,0.5); }
     .modal-btn-danger { background: rgba(255,95,87,0.42); border-color: rgba(255,127,120,0.5); }
     .modal-btn-muted { background: rgba(40,40,45,0.3); }
     .modal-divider { height: 1px; background: var(--border); margin: 8px 0; }
@@ -917,9 +890,24 @@
 
 <!-- Настройки навигатора -->
 <div id="navSettingsOverlay">
-    <div class="settings-row"><span>Триггер (м)</span><input type="number" class="trigger-input" id="cfgTrigger" value="25"></div>
-    <div class="settings-row"><span>Мин. скорость</span><input type="number" class="trigger-input" id="cfgSpeed" value="2"></div>
-    <div class="settings-row"><span>Азимут допуск</span><input type="number" class="trigger-input" id="cfgAz" value="45"></div>
+    <div class="settings-row">
+        <span>Триггер (м)</span>
+        <input type="number" class="trigger-input" id="cfgTrigger" value="25">
+    </div>
+    <div class="settings-row">
+        <span>Мин. скорость</span>
+        <input type="number" class="trigger-input" id="cfgSpeed" value="2">
+    </div>
+    <div class="settings-row">
+        <span>Азимут допуск</span>
+        <input type="number" class="trigger-input" id="cfgAz" value="45">
+    </div>
+    <div class="settings-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button id="fullscreenBtn" class="modal-btn modal-btn-blue" style="width: 100%; padding: 10px; font-size: 13px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" style="fill: currentColor; margin-right: 6px;"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            Полный экран
+        </button>
+    </div>
 </div>
 
 <script>
@@ -1923,40 +1911,29 @@ document.addEventListener('visibilitychange', () => {
 async function initApp() {
     // Инициализируем VK Mini Apps
     const vkBridge = window.vkBridge || window.VKMiniApps;
-    const vkApp = vkBridge ? {
-        expand: function() {
-            return vkBridge.send('VKWebAppSetViewSettings', {
+    
+    if (vkBridge) {
+        try {
+            // Инициализируем VK Bridge
+            await vkBridge.send('VKWebAppInit');
+            console.log('VK Bridge инициализирован');
+            
+            // Устанавливаем настройки вида
+            await vkBridge.send('VKWebAppSetViewSettings', {
                 status_bar_style: 'dark',
                 action_bar_color: '#0f1115'
-            }).catch(function(e) {
-                console.log('expand error:', e);
             });
-        },
-        requestFullscreen: function() {
-            return vkBridge.send('VKWebAppFullscreen').catch(function(e) {
-                console.log('fullscreen error:', e);
-            });
-        },
-        setHeaderColor: function(color) {
-            return vkBridge.send('VKWebAppSetViewSettings', {
-                status_bar_style: 'dark'
-            }).catch(function(e) {
-                console.log('setHeaderColor error:', e);
-            });
-        }
-    } : null;
-
-    if (vkApp) {
-        try {
-            await vkApp.expand();
-            await vkApp.requestFullscreen();
-            vkApp.setHeaderColor('secondary_bg_color');
+            console.log('Настройки вида установлены');
+            
+            // Запрашиваем полный экран
+            await vkBridge.send('VKWebAppFullscreen');
+            console.log('Полный экран запрошен');
+            
+            // Пробуем активировать Wake Lock
+            wakeFromUser();
         } catch (e) {
             console.log('VK setup error:', e);
         }
-
-        // Пробуем активировать Wake Lock сразу после expand()
-        wakeFromUser();
     }
 
     console.log('=== ИНИЦИАЛИЗАЦИЯ ===');
@@ -1975,7 +1952,23 @@ async function initApp() {
     const routeParam = urlParams.get('route'); // Параметр route для запуска навигатора
     console.log('startParam:', startParam, 'routeParam:', routeParam);
 
-    // Обработчики кликов для Wake Lock (дублирование на случай если первый вызов не сработал)
+    // Обработчики кликов для Wake Lock и полного экрана (первое взаимодействие)
+    let firstInteractionDone = false;
+    function firstInteraction() {
+        if (firstInteractionDone) return;
+        firstInteractionDone = true;
+        
+        // Пробуем включить полный экран при первом взаимодействии
+        const vkBridge = window.vkBridge;
+        if (vkBridge) {
+            vkBridge.send('VKWebAppFullscreen').catch(function(e) {
+                console.log('Fullscreen на первое взаимодействие:', e);
+            });
+        }
+    }
+    
+    document.addEventListener('click', firstInteraction);
+    document.addEventListener('touchstart', firstInteraction);
     document.addEventListener('click', wakeFromUser);
     document.addEventListener('touchstart', wakeFromUser);
 
@@ -2063,20 +2056,35 @@ async function initApp() {
     byId('cfgAz').addEventListener('input', (e) => {
         APP.navConfig.AZ_TOLERANCE = Number(e.target.value);
     });
+    
+    // Кнопка полного экрана
+    byId('fullscreenBtn').addEventListener('click', function() {
+        const vkBridge = window.vkBridge;
+        if (vkBridge) {
+            vkBridge.send('VKWebAppFullscreen')
+                .then(function() {
+                    console.log('Полный экран включён');
+                    showToast('Полный экран включён', 'success');
+                })
+                .catch(function(e) {
+                    console.log('Ошибка полного экрана:', e);
+                    showToast('Не удалось включить полный экран', 'error');
+                });
+        } else {
+            // Для веб-браузеров
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen()
+                    .then(() => showToast('Полный экран включён', 'success'))
+                    .catch(e => showToast('Не удалось включить полный экран', 'error'));
+            }
+        }
+    });
 }
 
 // Запуск
-// Ждём загрузки VK Bridge перед инициализацией приложения
+// Запускаем приложение после загрузки DOM
 function startApp() {
-    // Ждём максимум 3 секунды для загрузки VK Bridge
-    let waitCount = 0;
-    const waitInterval = setInterval(function() {
-        if (window.vkBridgeReady || waitCount > 30) {
-            clearInterval(waitInterval);
-            initApp();
-        }
-        waitCount++;
-    }, 100);
+    initApp();
 }
 
 // Запускаем после загрузки DOM
