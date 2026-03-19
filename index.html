@@ -108,31 +108,7 @@
     #navLocateBtn svg { fill: currentColor; width: 24px; height: 24px; }
     #navLocateBtn:active { transform: scale(0.95); background: rgba(30,32,40,0.9); }
     #navLocateBtn.active { background: rgba(52,199,89,0.42); border-color: rgba(103,255,153,0.45); }
-    
-    /* Кнопка переключения вида карты */
-    #mapTypeBtn {
-        position: absolute;
-        top: calc(16px + env(safe-area-inset-top) + 116px);
-        right: 16px;
-        z-index: 9005;
-        pointer-events: auto;
-        background: var(--dark-panel);
-        backdrop-filter: var(--panel-blur);
-        -webkit-backdrop-filter: var(--panel-blur);
-        width: 56px; height: 56px;
-        border-radius: 50%;
-        border: 1px solid var(--border);
-        color: var(--btn-txt);
-        cursor: pointer;
-        transition: transform 0.15s, background 0.15s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.22);
-    }
-    #mapTypeBtn svg { fill: currentColor; width: 24px; height: 24px; }
-    #mapTypeBtn:active { transform: scale(0.95); background: rgba(30,32,40,0.9); }
-    
+
     /* Загрузочный экран */
     .loading-overlay {
         position: fixed; inset: 0; background: rgba(8,10,14,0.95);
@@ -776,11 +752,6 @@
     <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
 </button>
 
-<!-- Кнопка переключения вида карты - под кнопкой геолокации -->
-<button id="mapTypeBtn" onclick="toggleMapType()" style="display:none;">
-    <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
-</button>
-
 <!-- Оверлей информации о маршруте (навигатор) -->
 <div id="navGistInfoOverlay" onclick="this.classList.remove('visible')">
     <div class="overlay-title">О маршруте</div>
@@ -849,8 +820,11 @@
             </div>
         </div>
         <div class="hud-side-actions">
-            <button id="navSpeakBtn" class="action-icon-btn">
+            <button id="navSpeakBtn" class="action-icon-btn" title="Прослушать команду">
                 <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            </button>
+            <button id="mapTypeBtn" class="action-icon-btn" onclick="toggleMapType()" title="Переключить вид карты">
+                <svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
             </button>
         </div>
     </div>
