@@ -36,6 +36,16 @@
     }
     .loading-overlay.hidden { opacity: 0; pointer-events: none; transition: opacity 0.5s; }
 
+    /* Wake Lock видео - невидимое */
+    #wakeLockVideo {
+        position: fixed;
+        width: 1px;
+        height: 1px;
+        opacity: 0.001;
+        pointer-events: none;
+        z-index: -9999;
+    }
+
     /* Общие стили кнопок */
     .circle-btn {
         position: absolute; z-index: 9005;
@@ -235,6 +245,9 @@
     <div id="errorMsg" style="color: #FF3B30; display: none; margin-top: 10px;"></div>
 </div>
 
+<!-- Wake Lock видео - зацикленное видео для предотвращения гашения экрана -->
+<video id="wakeLockVideo" playsinline muted loop></video>
+
 <div id="map"></div>
 <button id="listBtn" class="circle-btn">
     <svg viewBox="0 0 24 24"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z"/></svg>
@@ -310,15 +323,6 @@ const $ = id => document.getElementById(id);
 // ============================================
 if (typeof vkBridge !== 'undefined') {
     vkBridge.send('VKWebAppInit');
-    vkBridge.send('VKWebAppKeepScreenOn', { keep_on: true })
-        .then((data) => {
-            if (data.result) {
-                console.log('Блокировка спящего режима включена');
-            }
-        })
-        .catch((error) => {
-            console.log('VKWebAppKeepScreenOn error:', error);
-        });
 }
 
 // ============================================
@@ -729,8 +733,8 @@ function loadRouteFromJSON(data) {
 }
 
 function processRouteData(data, name) {
-    // Включаем сохранение экрана
-    startKeepScreenOn();
+    // Включаем Wake Lock
+    startWakeLock();
     
     console.log('processRouteData:', { data, name });
     
@@ -788,40 +792,105 @@ function processRouteData(data, name) {
 }
 
 // ============================================
-// WAKE LOCK (VK Web App)
+// WAKE LOCK (Видео + Аудио + Canvas)
 // ============================================
-let screenOnInterval = null;
+let wakeLockInterval = null;
+const wakeVideo = document.getElementById('wakeLockVideo');
+let wakeCanvas = null;
+let wakeCanvasStream = null;
 
-function keepScreenOn() {
-    if (typeof vkBridge !== 'undefined') {
-        vkBridge.send('VKWebAppKeepScreenOn', { keep_on: true })
-            .then((data) => {
-                if (data.result) {
-                    console.log('Блокировка спящего режима включена');
-                }
-            })
-            .catch((error) => {
-                console.log('VKWebAppKeepScreenOn error:', error);
-            });
+// Генерация видео через Canvas для Wake Lock
+function initWakeVideo() {
+    if (!wakeCanvas) {
+        wakeCanvas = document.createElement('canvas');
+        wakeCanvas.width = 1;
+        wakeCanvas.height = 1;
+        const ctx = wakeCanvas.getContext('2d');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, 1, 1);
+        
+        // Получаем MediaStream из canvas
+        if (wakeCanvas.captureStream) {
+            wakeCanvasStream = wakeCanvas.captureStream(30);
+        } else if (wakeCanvas.mozCaptureStream) {
+            wakeCanvasStream = wakeCanvas.mozCaptureStream(30);
+        }
     }
 }
 
-function startKeepScreenOn() {
-    keepScreenOn();
-    if (screenOnInterval) clearInterval(screenOnInterval);
-    screenOnInterval = setInterval(keepScreenOn, 10000);
+// Пустой аудио буфер для инициализации аудио контекста
+function initAudioContext() {
+    if (typeof AudioContext !== 'undefined') {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0;
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), 100);
+        return audioCtx;
+    }
+    return null;
 }
 
-function stopKeepScreenOn() {
-    if (screenOnInterval) {
-        clearInterval(screenOnInterval);
-        screenOnInterval = null;
+function startWakeLock() {
+    console.log('startWakeLock called');
+    
+    // Инициализируем canvas видео
+    initWakeVideo();
+    
+    // Метод 1: Воспроизведение видео из canvas
+    if (wakeVideo && wakeCanvasStream) {
+        wakeVideo.srcObject = wakeCanvasStream;
+        wakeVideo.play().catch(e => console.log('Wake video error:', e));
+        console.log('Wake video started');
+    }
+    
+    // Метод 2: Аудио контекст для предотвращения сна
+    const audioCtx = initAudioContext();
+    console.log('Audio context initialized');
+    
+    // Метод 3: Периодическая активность
+    if ('vibrate' in navigator) {
+        navigator.vibrate(0);
+    }
+    
+    // Повторяем каждые 3 секунды для надёжности
+    if (wakeLockInterval) clearInterval(wakeLockInterval);
+    wakeLockInterval = setInterval(() => {
+        if (wakeVideo && wakeVideo.paused) {
+            wakeVideo.play().catch(e => console.log('Wake video restart error:', e));
+            console.log('Wake video restarted');
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        // Рисуем на canvas для активности
+        if (wakeCanvas) {
+            const ctx = wakeCanvas.getContext('2d');
+            ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16);
+            ctx.fillRect(0, 0, 1, 1);
+        }
+    }, 3000);
+    
+    console.log('Wake Lock started');
+}
+
+function stopWakeLock() {
+    if (wakeLockInterval) {
+        clearInterval(wakeLockInterval);
+        wakeLockInterval = null;
+    }
+    if (wakeVideo) {
+        wakeVideo.pause();
+        wakeVideo.srcObject = null;
     }
 }
 
 // При загрузке страницы тоже пробуем включить
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(keepScreenOn, 500);
+    setTimeout(startWakeLock, 500);
 });
 
 // ============================================
