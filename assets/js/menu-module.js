@@ -10,23 +10,20 @@ const MenuModule = {
 
     /**
      * Универсальное получение параметров URL
-     * Поддерживает: query string, hash, VK Mini Apps форматы
+     * Поддерживает только формат: #m=id-название
      */
     getUrlParam(name) {
-        // 1. Проверка query string: ?m=value
-        const urlParams = new URLSearchParams(window.location.search);
-        let value = urlParams.get(name);
-        if (value) return value;
+        if (name !== 'm') return null;
 
-        // 2. Проверка hash: #m=value или #/route?m=value
+        // Проверка hash: #m=id-название
         const hash = window.location.hash.slice(1);
         if (hash) {
-            // Формат: #m=value
+            // Формат: #m=id-название
             const hashParams = new URLSearchParams(hash);
-            value = hashParams.get(name);
+            let value = hashParams.get(name);
             if (value) return value;
 
-            // Формат: #/path?m=value (SPA роутинг)
+            // Формат: #/path?m=id-название
             const hashQueryIndex = hash.indexOf('?');
             if (hashQueryIndex > -1) {
                 const hashQuery = hash.substring(hashQueryIndex + 1);
@@ -34,25 +31,27 @@ const MenuModule = {
                 value = hashQueryParams.get(name);
                 if (value) return value;
             }
-
-            // Формат: #m=value&other=... (прямой hash без slash)
-            if (!hash.startsWith('/')) {
-                const simpleHashParams = new URLSearchParams(hash);
-                value = simpleHashParams.get(name);
-                if (value) return value;
-            }
-        }
-
-        // 3. Проверка VK Bridge initial data
-        if (typeof vkBridge !== 'undefined' && vkBridge.VKWebAppInitData) {
-            const vkData = vkBridge.VKWebAppInitData;
-            if (vkData && vkData.params) {
-                value = vkData.params[name];
-                if (value) return value;
-            }
         }
 
         return null;
+    },
+
+    /**
+     * Парсинг ввода в формате "id-название" или просто "название"
+     * @returns {{id: string|null, name: string}}
+     */
+    parseRouteInput(input) {
+        const trimmed = input.trim();
+        const dashIndex = trimmed.indexOf('-');
+        
+        if (dashIndex > 0) {
+            const id = trimmed.substring(0, dashIndex).trim();
+            const name = trimmed.substring(dashIndex + 1).trim();
+            if (id && name) {
+                return { id, name };
+            }
+        }
+        return { id: null, name: trimmed };
     },
 
     // Инициализация
@@ -79,10 +78,14 @@ const MenuModule = {
                 vkBridge.send('VKWebAppGetLaunchParams')
                     .then(params => {
                         console.log('[MenuModule] Launch params:', params);
+                        // Поддерживаем только формат m=id-название
                         if (params && params.m) {
-                            this.isLoaded = true;
-                            this.hide();
-                            this.loadRouteByName(params.m);
+                            const { id, name } = this.parseRouteInput(params.m);
+                            if (name) {
+                                this.isLoaded = true;
+                                this.hide();
+                                this.loadRouteByName(name, id);
+                            }
                         }
                     })
                     .catch(e => console.log('[MenuModule] GetLaunchParams error:', e));
@@ -97,8 +100,8 @@ const MenuModule = {
         const html = `
             <div id="jsonModal">
                 <div class="modal-sheet">
-                    <div class="modal-title">Введите название маршрута</div>
-                    <input type="text" id="routeNameInput" class="modal-input" placeholder="">
+                    <div class="modal-title">Загрузка маршрута</div>
+                    <input type="text" id="routeInput" class="modal-input" placeholder="ID-название (например: 123-маршрут)">
                     <div class="modal-buttons">
                         <button id="cancelBtn" class="modal-btn modal-btn-muted">Отмена</button>
                         <button id="loadRouteBtn" class="modal-btn modal-btn-green">Загрузить</button>
@@ -106,33 +109,40 @@ const MenuModule = {
                 </div>
             </div>
         `;
-        
+
         const loading = document.getElementById('loading');
         if (loading) {
             loading.insertAdjacentHTML('afterend', html);
         } else {
             document.body.insertAdjacentHTML('afterbegin', html);
         }
-        
+
         // Обработчик загрузки
         document.getElementById('loadRouteBtn').addEventListener('click', () => {
-            const routeName = document.getElementById('routeNameInput').value.trim();
-            if (!routeName) {
+            const inputValue = document.getElementById('routeInput').value.trim();
+            if (!inputValue) {
+                if (typeof showToast === 'function') {
+                    showToast('Введите ID и название маршрута', 'error');
+                }
+                return;
+            }
+            const { id, name } = this.parseRouteInput(inputValue);
+            if (!name) {
                 if (typeof showToast === 'function') {
                     showToast('Введите название маршрута', 'error');
                 }
                 return;
             }
-            this.loadRouteByName(routeName);
+            this.loadRouteByName(name, id);
         });
-        
+
         // Обработчик отмены
         document.getElementById('cancelBtn').addEventListener('click', () => {
             this.hide();
         });
-        
+
         // Обработчик Enter
-        document.getElementById('routeNameInput').addEventListener('keypress', (e) => {
+        document.getElementById('routeInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 document.getElementById('loadRouteBtn').click();
             }
@@ -160,34 +170,49 @@ const MenuModule = {
         // Обработчик клика
         document.getElementById('menuBtn').addEventListener('click', () => {
             this.show();
-            document.getElementById('routeNameInput').value = '';
-            document.getElementById('routeNameInput').focus();
+            document.getElementById('routeInput').value = '';
+            document.getElementById('routeInput').focus();
         });
     },
     
     // Проверка URL параметра
     checkUrlParam() {
-        // Используем универсальную функцию для получения параметра
+        // Поддерживаем только формат: #m=id-название
         const routeParam = this.getUrlParam('m');
-        
+
         console.log('[MenuModule] Проверка URL параметра m:', routeParam);
-        
+
         if (routeParam) {
-            console.log('[MenuModule] Найден параметр маршрута:', routeParam);
+            // Парсим формат "id-название"
+            const { id, name } = this.parseRouteInput(routeParam);
+            
+            console.log('[MenuModule] Найден параметр маршрута:', name, id ? ', ID:' + id : '');
             this.isLoaded = true;
             this.hide();
-            this.loadRouteByName(routeParam);
+            this.loadRouteByName(name, id);
         }
     },
     
     // Загрузка маршрута по названию (внутренний метод)
-    async loadRouteByName(routeName) {
+    async loadRouteByName(routeName, routeId = null) {
         try {
-            const url = `https://functions.yandexcloud.net/d4ekerqua63o9npij6ro?m=${encodeURIComponent(routeName)}`;
+            // Формируем URL с двумя параметрами: id и m (id перед m)
+            let url = 'https://functions.yandexcloud.net/d4ejhg45t650h3amrik1';
+            const params = [];
+            if (routeId) {
+                params.push(`id=${encodeURIComponent(routeId)}`);
+            }
+            if (routeName) {
+                params.push(`m=${encodeURIComponent(routeName)}`);
+            }
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+            console.log('[MenuModule] Запрос к функции:', url);
             const res = await fetch(url);
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
-            
+
             // Возвращаем JSON данные в навигатор
             this.loadRoute(data);
         } catch (e) {
