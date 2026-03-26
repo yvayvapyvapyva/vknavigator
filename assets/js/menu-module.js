@@ -61,6 +61,9 @@ const MenuModule = {
         this.createButton();
         this.hide();
 
+        // Включаем полноэкранный режим в VK Mini Apps
+        this.enableFullscreen();
+
         // Проверяем параметры сразу и при получении данных от VK Bridge
         this.checkUrlParam();
 
@@ -92,6 +95,24 @@ const MenuModule = {
             } catch (e) {
                 console.log('[MenuModule] VK Bridge not available:', e);
             }
+        }
+    },
+
+    /**
+     * Включение полноэкранного режима в VK Mini Apps
+     */
+    enableFullscreen() {
+        if (typeof vkBridge !== 'undefined') {
+            // Устанавливаем расширенный заголовок (скрывает стандартные элементы VK)
+            vkBridge.send('VKWebAppSetViewSettings', {
+                status_bar_style: 'light',
+                action_bar_color: 'transparent'
+            }).catch(e => console.log('[MenuModule] SetViewSettings error:', e));
+
+            // Запрашиваем полный экран
+            vkBridge.send('VKWebAppFullscreen')
+                .then(() => console.log('[MenuModule] Fullscreen enabled'))
+                .catch(e => console.log('[MenuModule] Fullscreen error:', e));
         }
     },
     

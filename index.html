@@ -311,6 +311,17 @@ const $ = id => document.getElementById(id);
 // ============================================
 if (typeof vkBridge !== 'undefined') {
     vkBridge.send('VKWebAppInit');
+    
+    // Включаем полноэкранный режим
+    vkBridge.send('VKWebAppFullscreen')
+        .then(() => console.log('[App] Fullscreen enabled'))
+        .catch(e => console.log('[App] Fullscreen error:', e));
+    
+    // Настраиваем вид (статус бар и action bar)
+    vkBridge.send('VKWebAppSetViewSettings', {
+        status_bar_style: 'light',
+        action_bar_color: 'transparent'
+    }).catch(e => console.log('[App] SetViewSettings error:', e));
 }
 
 // ============================================
