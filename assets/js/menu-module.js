@@ -7,14 +7,89 @@
 const MenuModule = {
     callback: null,
     isLoaded: false,
-    
+
+    /**
+     * Универсальное получение параметров URL
+     * Поддерживает: query string, hash, VK Mini Apps форматы
+     */
+    getUrlParam(name) {
+        // 1. Проверка query string: ?m=value
+        const urlParams = new URLSearchParams(window.location.search);
+        let value = urlParams.get(name);
+        if (value) return value;
+
+        // 2. Проверка hash: #m=value или #/route?m=value
+        const hash = window.location.hash.slice(1);
+        if (hash) {
+            // Формат: #m=value
+            const hashParams = new URLSearchParams(hash);
+            value = hashParams.get(name);
+            if (value) return value;
+
+            // Формат: #/path?m=value (SPA роутинг)
+            const hashQueryIndex = hash.indexOf('?');
+            if (hashQueryIndex > -1) {
+                const hashQuery = hash.substring(hashQueryIndex + 1);
+                const hashQueryParams = new URLSearchParams(hashQuery);
+                value = hashQueryParams.get(name);
+                if (value) return value;
+            }
+
+            // Формат: #m=value&other=... (прямой hash без slash)
+            if (!hash.startsWith('/')) {
+                const simpleHashParams = new URLSearchParams(hash);
+                value = simpleHashParams.get(name);
+                if (value) return value;
+            }
+        }
+
+        // 3. Проверка VK Bridge initial data
+        if (typeof vkBridge !== 'undefined' && vkBridge.VKWebAppInitData) {
+            const vkData = vkBridge.VKWebAppInitData;
+            if (vkData && vkData.params) {
+                value = vkData.params[name];
+                if (value) return value;
+            }
+        }
+
+        return null;
+    },
+
     // Инициализация
     init(onRouteLoaded) {
         this.callback = onRouteLoaded;
         this.createModal();
         this.createButton();
-        this.hide();  // Скрываем модальное окно при инициализации
+        this.hide();
+
+        // Проверяем параметры сразу и при получении данных от VK Bridge
         this.checkUrlParam();
+
+        // Подписка на события VK Bridge для параметров запуска
+        if (typeof vkBridge !== 'undefined') {
+            vkBridge.subscribe((event) => {
+                console.log('[MenuModule] VK Bridge event:', event);
+                if (event && event.type === 'VKWebAppUpdateConfig' || event.detail) {
+                    this.checkUrlParam();
+                }
+            });
+
+            // Пробуем получить параметры из launchParams
+            try {
+                vkBridge.send('VKWebAppGetLaunchParams')
+                    .then(params => {
+                        console.log('[MenuModule] Launch params:', params);
+                        if (params && params.m) {
+                            this.isLoaded = true;
+                            this.hide();
+                            this.loadRouteByName(params.m);
+                        }
+                    })
+                    .catch(e => console.log('[MenuModule] GetLaunchParams error:', e));
+            } catch (e) {
+                console.log('[MenuModule] VK Bridge not available:', e);
+            }
+        }
     },
     
     // Создание модального окна
@@ -92,8 +167,13 @@ const MenuModule = {
     
     // Проверка URL параметра
     checkUrlParam() {
-        const routeParam = new URLSearchParams(window.location.search).get('m');
+        // Используем универсальную функцию для получения параметра
+        const routeParam = this.getUrlParam('m');
+        
+        console.log('[MenuModule] Проверка URL параметра m:', routeParam);
+        
         if (routeParam) {
+            console.log('[MenuModule] Найден параметр маршрута:', routeParam);
             this.isLoaded = true;
             this.hide();
             this.loadRouteByName(routeParam);
