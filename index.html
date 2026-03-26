@@ -307,6 +307,13 @@ const APP = {
 const $ = id => document.getElementById(id);
 
 // ============================================
+// VK MINI APPS
+// ============================================
+if (typeof vkBridge !== 'undefined') {
+    vkBridge.send('VKWebAppInit');
+}
+
+// ============================================
 // УВЕДОМЛЕНИЯ
 // ============================================
 let toastTimer = null;
