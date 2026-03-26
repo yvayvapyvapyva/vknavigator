@@ -68,7 +68,8 @@ const MenuModule = {
         if (typeof vkBridge !== 'undefined') {
             vkBridge.subscribe((event) => {
                 console.log('[MenuModule] VK Bridge event:', event);
-                if (event && event.type === 'VKWebAppUpdateConfig' || event.detail) {
+                // Проверяем, что маршрут ещё не загружен
+                if (!this.isLoaded && (event && event.type === 'VKWebAppUpdateConfig' || event.detail)) {
                     this.checkUrlParam();
                 }
             });
@@ -78,8 +79,8 @@ const MenuModule = {
                 vkBridge.send('VKWebAppGetLaunchParams')
                     .then(params => {
                         console.log('[MenuModule] Launch params:', params);
-                        // Поддерживаем только формат m=id-название
-                        if (params && params.m) {
+                        // Проверяем, что маршрут ещё не загружен
+                        if (!this.isLoaded && params && params.m) {
                             const { id, name } = this.parseRouteInput(params.m);
                             if (name) {
                                 this.isLoaded = true;
