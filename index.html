@@ -310,7 +310,15 @@ const $ = id => document.getElementById(id);
 // ============================================
 if (typeof vkBridge !== 'undefined') {
     vkBridge.send('VKWebAppInit');
-    vkBridge.send('VKWebAppKeepScreenOn');
+    vkBridge.send('VKWebAppKeepScreenOn', { keep_on: true })
+        .then((data) => {
+            if (data.result) {
+                console.log('Блокировка спящего режима включена');
+            }
+        })
+        .catch((error) => {
+            console.log('VKWebAppKeepScreenOn error:', error);
+        });
 }
 
 // ============================================
@@ -786,7 +794,15 @@ let screenOnInterval = null;
 
 function keepScreenOn() {
     if (typeof vkBridge !== 'undefined') {
-        vkBridge.send('VKWebAppKeepScreenOn');
+        vkBridge.send('VKWebAppKeepScreenOn', { keep_on: true })
+            .then((data) => {
+                if (data.result) {
+                    console.log('Блокировка спящего режима включена');
+                }
+            })
+            .catch((error) => {
+                console.log('VKWebAppKeepScreenOn error:', error);
+            });
     }
 }
 
