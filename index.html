@@ -310,6 +310,7 @@ const $ = id => document.getElementById(id);
 // ============================================
 if (typeof vkBridge !== 'undefined') {
     vkBridge.send('VKWebAppInit');
+    vkBridge.send('VKWebAppKeepScreenOn');
 }
 
 // ============================================
@@ -720,6 +721,9 @@ function loadRouteFromJSON(data) {
 }
 
 function processRouteData(data, name) {
+    // Включаем сохранение экрана
+    startKeepScreenOn();
+    
     console.log('processRouteData:', { data, name });
     
     if (!data || !Array.isArray(data)) {
@@ -776,27 +780,33 @@ function processRouteData(data, name) {
 }
 
 // ============================================
-// WAKE LOCK
+// WAKE LOCK (VK Web App)
 // ============================================
-let wl = null;
-const wake = async () => {
-    // Воспроизводим тишину для аудио (корректный 10-секундный silent WAV)
-    if (APP.navAudio.paused) {
-        APP.navAudio.src = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
-        APP.navAudio.play().catch(() => {});
+let screenOnInterval = null;
+
+function keepScreenOn() {
+    if (typeof vkBridge !== 'undefined') {
+        vkBridge.send('VKWebAppKeepScreenOn');
     }
-    // Освобождаем предыдущий wake lock
-    if (wl) { try { await wl.release(); } catch(e) {} wl = null; }
-    // Запрашиваем wake lock через API
-    if ('wakeLock' in navigator) {
-        try { wl = await navigator.wakeLock.request('screen'); }
-        catch(e) { console.log('Wake Lock error:', e.name); }
+}
+
+function startKeepScreenOn() {
+    keepScreenOn();
+    if (screenOnInterval) clearInterval(screenOnInterval);
+    screenOnInterval = setInterval(keepScreenOn, 10000);
+}
+
+function stopKeepScreenOn() {
+    if (screenOnInterval) {
+        clearInterval(screenOnInterval);
+        screenOnInterval = null;
     }
-    // Видео больше не воспроизводим — это вызывает проблемы в VK Mini Apps
-};
-document.addEventListener('click', wake);
-document.addEventListener('touchstart', wake);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && wl) wake(); });
+}
+
+// При загрузке страницы тоже пробуем включить
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(keepScreenOn, 500);
+});
 
 // ============================================
 // ИНИЦИАЛИЗАЦИЯ
