@@ -235,7 +235,6 @@
     <div id="errorMsg" style="color: #FF3B30; display: none; margin-top: 10px;"></div>
 </div>
 
-<video id="v" playsinline muted loop></video>
 <div id="map"></div>
 <button id="listBtn" class="circle-btn">
     <svg viewBox="0 0 24 24"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z"/></svg>
@@ -779,20 +778,21 @@ function processRouteData(data, name) {
 // ============================================
 // WAKE LOCK
 // ============================================
-const v = $('v');
 let wl = null;
 const wake = async () => {
+    // Воспроизводим тишину для аудио (корректный 10-секундный silent WAV)
     if (APP.navAudio.paused) {
-        APP.navAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+        APP.navAudio.src = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
         APP.navAudio.play().catch(() => {});
     }
+    // Освобождаем предыдущий wake lock
     if (wl) { try { await wl.release(); } catch(e) {} wl = null; }
+    // Запрашиваем wake lock через API
     if ('wakeLock' in navigator) {
         try { wl = await navigator.wakeLock.request('screen'); }
         catch(e) { console.log('Wake Lock error:', e.name); }
     }
-    if (!v.src) v.src = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21hdmMxbXA0MgAAAAhmcmVlAAAALm1kYXQAAAHvYXZjQwFQAFr/4AAZAWgAVv/AAB9AAAADAAIAAAMAHBDeEAEABWj/gAAAAA5ieHRyY3Rsc3RyYmMAAAALYm9vdnNoZHIAAAADbXZoZAAAAAAAAAAAAAAAAAAAA+gAAAPoAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAACAGlzb21hdmMxbXA0MgAAAAhmcmVlAAAALm1kYXQ=";
-    v.play().catch(()=>{});
+    // Видео больше не воспроизводим — это вызывает проблемы в VK Mini Apps
 };
 document.addEventListener('click', wake);
 document.addEventListener('touchstart', wake);
