@@ -563,32 +563,56 @@ function showPreview(i) {
     renderRoutePoints();
 
     if (p.pts && p.pts.length >= 2) {
-        // Показываем только начальную и конечную точку пути просматриваемой метки
         const firstPt = p.pts[0];
         const lastPt = p.pts[p.pts.length - 1];
-        
-        // Вычисляем границы для отображения обеих точек
+        const currentZoom = APP.map.getZoom();
+
+        // Вычисляем размер пути в градусах
+        const latDiff = Math.abs(lastPt[0] - firstPt[0]);
+        const lonDiff = Math.abs(lastPt[1] - firstPt[1]);
+
+        // Вычисляем границы, необходимые для отображения пути с отступами 30%
         const minLat = Math.min(firstPt[0], lastPt[0]);
         const maxLat = Math.max(firstPt[0], lastPt[0]);
         const minLon = Math.min(firstPt[1], lastPt[1]);
         const maxLon = Math.max(firstPt[1], lastPt[1]);
-        
-        // Добавляем небольшой отступ
+
         const latMargin = (maxLat - minLat) * 0.3 || 0.001;
         const lonMargin = (maxLon - minLon) * 0.3 || 0.001;
-        
-        const bounds = [
+
+        const requiredBounds = [
             [minLat - latMargin, minLon - lonMargin],
             [maxLat + latMargin, maxLon + lonMargin]
         ];
-        
-        // Устанавливаем карту по границам (автоматически подбирает зум)
-        APP.map.setBounds(bounds, {
-            checkZoomRange: true,
-            duration: 1000
-        });
+
+        // Получаем текущие границы карты
+        const currentBounds = APP.map.getBounds();
+
+        // Вычисляем размер текущей видимой области
+        const currentLatSpan = currentBounds[1][0] - currentBounds[0][0];
+        const currentLonSpan = currentBounds[1][1] - currentBounds[0][1];
+
+        // Вычисляем размер требуемой области
+        const requiredLatSpan = requiredBounds[1][0] - requiredBounds[0][0];
+        const requiredLonSpan = requiredBounds[1][1] - requiredBounds[0][1];
+
+        // Проверяем, достаточно ли текущего зума (текущая область >= требуемой)
+        const zoomIsSufficient = currentLatSpan >= requiredLatSpan && currentLonSpan >= requiredLonSpan;
+
+        if (zoomIsSufficient) {
+            // Зума достаточно — сохраняем его, центрируем на середине пути
+            const centerPt = [(firstPt[0] + lastPt[0]) / 2, (firstPt[1] + lastPt[1]) / 2];
+            APP.map.setCenter(centerPt, currentZoom, { duration: 300 });
+        } else {
+            // Зума недостаточно — применяем setBounds
+            APP.map.setBounds(requiredBounds, {
+                checkZoomRange: true,
+                duration: 1000
+            });
+        }
     } else if (p.lat && p.lon) {
-        APP.map.setCenter([p.lat, p.lon], 17);
+        const currentZoom = APP.map.getZoom();
+        APP.map.setCenter([p.lat, p.lon], currentZoom, { duration: 300 });
     }
 }
 
