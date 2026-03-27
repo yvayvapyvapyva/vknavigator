@@ -585,8 +585,8 @@ function showPreview(i) {
         else zoom = 20;
 
         APP.map.panTo([centerLat, centerLon], {
-            flying: true, duration: 500,
-            callback: () => APP.map.setZoom(zoom, { duration: 300 })
+            flying: true, duration: 1000,
+            callback: () => APP.map.setZoom(zoom, { duration: 500 })
         });
     } else if (p.lat && p.lon) {
         APP.map.setCenter([p.lat, p.lon], 17);
