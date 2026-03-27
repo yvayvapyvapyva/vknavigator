@@ -563,30 +563,29 @@ function showPreview(i) {
     renderRoutePoints();
 
     if (p.pts && p.pts.length >= 2) {
-        let minLat = p.pts[0][0], maxLat = p.pts[0][0];
-        let minLon = p.pts[0][1], maxLon = p.pts[0][1];
-        for (let pt of p.pts) {
-            if (pt[0] < minLat) minLat = pt[0];
-            if (pt[0] > maxLat) maxLat = pt[0];
-            if (pt[1] < minLon) minLon = pt[1];
-            if (pt[1] > maxLon) maxLon = pt[1];
-        }
-        const centerLat = (minLat + maxLat) / 2;
-        const centerLon = (minLon + maxLon) / 2;
-        const maxDiff = Math.max(maxLat - minLat, maxLon - minLon) + 0.00002;
-        let zoom = 17;
-        if (maxDiff > 0.05) zoom = 13;
-        else if (maxDiff > 0.02) zoom = 14;
-        else if (maxDiff > 0.01) zoom = 15;
-        else if (maxDiff > 0.005) zoom = 16;
-        else if (maxDiff > 0.002) zoom = 17;
-        else if (maxDiff > 0.001) zoom = 18;
-        else if (maxDiff > 0.0005) zoom = 19;
-        else zoom = 20;
-
-        APP.map.panTo([centerLat, centerLon], {
-            flying: true, duration: 1000,
-            callback: () => APP.map.setZoom(zoom, { duration: 500 })
+        // Показываем только начальную и конечную точку пути просматриваемой метки
+        const firstPt = p.pts[0];
+        const lastPt = p.pts[p.pts.length - 1];
+        
+        // Вычисляем границы для отображения обеих точек
+        const minLat = Math.min(firstPt[0], lastPt[0]);
+        const maxLat = Math.max(firstPt[0], lastPt[0]);
+        const minLon = Math.min(firstPt[1], lastPt[1]);
+        const maxLon = Math.max(firstPt[1], lastPt[1]);
+        
+        // Добавляем небольшой отступ
+        const latMargin = (maxLat - minLat) * 0.3 || 0.001;
+        const lonMargin = (maxLon - minLon) * 0.3 || 0.001;
+        
+        const bounds = [
+            [minLat - latMargin, minLon - lonMargin],
+            [maxLat + latMargin, maxLon + lonMargin]
+        ];
+        
+        // Устанавливаем карту по границам (автоматически подбирает зум)
+        APP.map.setBounds(bounds, {
+            checkZoomRange: true,
+            duration: 1000
         });
     } else if (p.lat && p.lon) {
         APP.map.setCenter([p.lat, p.lon], 17);
