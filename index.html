@@ -117,11 +117,11 @@
         width: 100%; display: flex; padding-top: 8px; gap: 8px;
         align-items: center; border-top: 1px solid rgba(255,255,255,0.1);
     }
-    .hud-stats { display: flex; align-items: center; gap: 16px; }
-    .hud-stats .stat-item { display: flex; flex-direction: column; align-items: center; }
-    .stat-label { font-size: 9px; color: #aaa; text-transform: uppercase; font-weight: 700; }
-    .stat-value { font-size: 14px; font-weight: 700; }
+    .hud-stats { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .hud-stats .stat-item { display: flex; align-items: baseline; gap: 2px; }
+    .stat-value { font-size: 16px; font-weight: 800; line-height: 1; }
     .stat-value.in-range { color: var(--target-lime); }
+    .stat-label-unit { font-size: 11px; color: #888; font-weight: 700; }
     .action-icon-btn {
         width: 36px; height: 36px; border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
@@ -283,8 +283,12 @@
             <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
         </button>
         <div class="hud-stats">
-            <div class="stat-item"><span class="stat-label">Дист</span><br><span class="stat-value" id="hudDist">---</span></div>
-            <div class="stat-item"><span class="stat-label">Цель АЗ</span><br><span class="stat-value" id="hudTargetAz">---</span></div>
+            <div class="stat-item">
+                <span class="stat-value" id="hudDist">---</span><span class="stat-label-unit">м</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="hudTargetAz">---</span><span class="stat-label-unit">°</span>
+            </div>
         </div>
         <div style="display:flex; gap:8px; flex:1; justify-content:center; align-items:center;">
             <button id="selectBtn">Выбрать</button>
@@ -509,7 +513,7 @@ function updateHud() {
 
     $('hudIndex').textContent = idx + 1;
     $('hudCmd').textContent = t.cmd;
-    $('hudTargetAz').textContent = `${Math.round(t.az)}°`;
+    $('hudTargetAz').textContent = Math.round(t.az);
     $('speakBtn').onclick = () => playCommand(t.cmd);
 
     $('selectBtn').style.display = isPreview ? 'flex' : 'none';
@@ -545,7 +549,7 @@ function updateHud() {
 }
 
 function updateHudDist(d, ad) {
-    $('hudDist').textContent = `${Math.round(d)}м`;
+    $('hudDist').textContent = `${Math.round(d)}`;
     $('hudDist').classList.toggle('in-range', d <= APP.navConfig.TRIGGER_DIST);
     $('hudTargetAz').classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
 }
