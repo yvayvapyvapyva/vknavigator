@@ -102,7 +102,7 @@ const MenuModule = {
             <div id="jsonModal">
                 <div class="modal-sheet">
                     <div class="modal-title">Загрузка маршрута</div>
-                    <input type="text" id="routeInput" class="modal-input" placeholder="ID-название (например: 123-маршрут)">
+                    <input type="text" id="routeInput" class="modal-input" placeholder="ID-название">
                     <div class="modal-buttons">
                         <button id="cancelBtn" class="modal-btn modal-btn-muted">Отмена</button>
                         <button id="loadRouteBtn" class="modal-btn modal-btn-green">Загрузить</button>
