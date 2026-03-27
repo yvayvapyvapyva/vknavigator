@@ -674,34 +674,29 @@ async function playCommand(text) {
 
 async function preloadAudio() {
     if (!('caches' in window)) return;
-    
+
     const cache = await caches.open('route-audio-v1');
-    
+
     // Кэшируем все возможные команды
     const allPaths = ALL_AUDIO_COMMANDS.map(cmd => getAudioPath(cmd)).filter(p => p);
     const uniquePaths = [...new Set(allPaths)];
-    
+
     let loaded = 0;
     let failed = 0;
-    
+
     for (const path of uniquePaths) {
         try {
             const res = await fetch(path);
             if (res.ok) await cache.put(path, res);
             else failed++;
-        } catch (e) { 
+        } catch (e) {
             failed++;
         }
         loaded++;
     }
-    
+
     const cachedCount = loaded - failed;
     console.log(`Закешировано: ${cachedCount}/${uniquePaths.length} файлов`);
-    
-    // Показываем сообщение только если загрузили хоть что-то
-    if (cachedCount > 0) {
-        showToast('Аудио команды загружены', 'success', 2000);
-    }
 }
 
 // ============================================
@@ -792,7 +787,7 @@ function processRouteData(data, name) {
 
     // Получаем имя маршрута из URL (hash или query)
     let routeName = name;
-    
+
     // Проверяем query string: ?m=id-название
     const searchParam = new URLSearchParams(window.location.search).get('m');
     if (searchParam) {
@@ -808,8 +803,8 @@ function processRouteData(data, name) {
             }
         }
     }
-    
-    showToast(`Маршрут загружен: ${routeName}`, 'success');
+
+    console.log(`[App] Маршрут загружен: ${routeName}`);
 }
 
 // ============================================

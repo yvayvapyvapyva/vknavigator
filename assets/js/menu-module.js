@@ -223,6 +223,9 @@ const MenuModule = {
     // Загрузка маршрута по названию (внутренний метод)
     async loadRouteByName(routeName, routeId = null) {
         try {
+            // Сначала закрываем окно меню
+            this.hide();
+            
             // Формируем базовый URL с параметрами: id, m
             let url = 'https://functions.yandexcloud.net/d4ejhg45t650h3amrik1';
             const params = [];
@@ -238,7 +241,7 @@ const MenuModule = {
                 try {
                     const userInfo = await Promise.race([
                         vkBridge.send('VKWebAppGetUserInfo'),
-                        new Promise((_, reject) => 
+                        new Promise((_, reject) =>
                             setTimeout(() => reject(new Error('timeout')), 1000)
                         )
                     ]);
