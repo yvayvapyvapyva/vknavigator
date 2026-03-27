@@ -98,6 +98,19 @@ const MenuModule = {
     
     // Создание модального окна
     createModal() {
+        // Генерируем HTML для списка маршрутов
+        let routesHtml = '';
+        if (typeof ROUTES_LIST !== 'undefined') {
+            routesHtml = '<div class="routes-list">';
+            for (const [routeId, routeName] of Object.entries(ROUTES_LIST)) {
+                routesHtml += `<button class="route-item" data-route="${routeId}">
+                    <span class="route-name">${routeName}</span>
+                    <span class="route-id">${routeId}</span>
+                </button>`;
+            }
+            routesHtml += '</div>';
+        }
+
         const html = `
             <div id="jsonModal">
                 <div class="modal-sheet">
@@ -107,6 +120,7 @@ const MenuModule = {
                         <button id="cancelBtn" class="modal-btn modal-btn-muted">Отмена</button>
                         <button id="loadRouteBtn" class="modal-btn modal-btn-green">Загрузить</button>
                     </div>
+                    ${routesHtml}
                 </div>
             </div>
         `;
@@ -147,6 +161,18 @@ const MenuModule = {
             if (e.key === 'Enter') {
                 document.getElementById('loadRouteBtn').click();
             }
+        });
+
+        // Обработчики кликов по списку маршрутов
+        document.querySelectorAll('.route-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const routeId = btn.getAttribute('data-route');
+                document.getElementById('routeInput').value = routeId;
+                const { id, name } = this.parseRouteInput(routeId);
+                if (name) {
+                    this.loadRouteByName(name, id);
+                }
+            });
         });
     },
     
