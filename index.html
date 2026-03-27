@@ -287,10 +287,10 @@
             <div class="stat-item"><span class="stat-label">Цель АЗ</span><br><span class="stat-value" id="hudTargetAz">---</span></div>
         </div>
         <div style="display:flex; gap:8px; flex:1; justify-content:center; align-items:center;">
+            <button id="selectBtn">Выбрать</button>
             <button id="speakBtn" class="action-icon-btn">
                 <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
             </button>
-            <button id="selectBtn">Выбрать</button>
         </div>
         <button id="nextBtn" class="nav-arrow-btn" title="Следующая точка">
             <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
@@ -514,7 +514,24 @@ function updateHud() {
 
     $('selectBtn').style.display = isPreview ? 'flex' : 'none';
     if (isPreview) $('selectBtn').onclick = () => setTarget(idx);
-    document.querySelector('.hud-stats').style.display = isPreview ? 'none' : 'flex';
+    
+    // Показываем статистику и в режиме просмотра
+    document.querySelector('.hud-stats').style.display = 'flex';
+    
+    // В режиме просмотра показываем дистанцию до точки просмотра
+    if (isPreview && APP.lastPos) {
+        const d = ymaps.coordSystem.geo.getDistance(APP.lastPos, [t.lat, t.lon]);
+        let ad = Math.abs(APP.lastAz - t.az) % 360;
+        if (ad > 180) ad = 360 - ad;
+        updateHudDist(d, ad);
+    } else if (!isPreview) {
+        // В обычном режиме дистанция обновляется в navCheckTriggers
+    } else {
+        // В режиме просмотра без геопозиции
+        $('hudDist').textContent = '---';
+        $('hudDist').classList.remove('in-range');
+        $('hudTargetAz').classList.remove('in-range');
+    }
 
     const prevBtn = $('prevBtn'), nextBtn = $('nextBtn');
     prevBtn.disabled = (idx <= 0);
