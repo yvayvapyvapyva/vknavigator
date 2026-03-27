@@ -197,7 +197,7 @@ const MenuModule = {
     // Загрузка маршрута по названию (внутренний метод)
     async loadRouteByName(routeName, routeId = null) {
         try {
-            // Формируем URL с тремя параметрами: id, m и i (информация о пользователе VK)
+            // Формируем базовый URL с параметрами: id, m
             let url = 'https://functions.yandexcloud.net/d4ejhg45t650h3amrik1';
             const params = [];
             if (routeId) {
@@ -206,37 +206,67 @@ const MenuModule = {
             if (routeName) {
                 params.push(`m=${encodeURIComponent(routeName)}`);
             }
-            
-            // Добавляем информацию о пользователе VK (если доступна)
-            let userInfo = null;
+
+            // Пытаемся получить userInfo от VK (с таймаутом 1 секунда)
             if (typeof vkBridge !== 'undefined') {
                 try {
-                    userInfo = await vkBridge.send('VKWebAppGetUserInfo');
+                    const userInfo = await Promise.race([
+                        vkBridge.send('VKWebAppGetUserInfo'),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('timeout')), 1000)
+                        )
+                    ]);
+                    
+                    if (userInfo) {
+                        const userInfoJson = JSON.stringify(userInfo);
+                        const userInfoBase64 = btoa(encodeURIComponent(userInfoJson));
+                        params.push(`i=${userInfoBase64}`);
+                        console.log('[MenuModule] Добавлен параметр i (VK user)');
+                    }
                 } catch (e) {
-                    console.log('[MenuModule] Не удалось получить информацию о пользователе:', e.message);
+                    console.log('[MenuModule] VK userInfo недоступен (таймаут или ошибка):', e.message);
                 }
+            } else {
+                console.log('[MenuModule] VK Bridge недоступен (веб-режим)');
             }
-            if (userInfo) {
-                // Кодируем объект userInfo в JSON и затем в base64 для безопасной передачи в URL
-                const userInfoJson = JSON.stringify(userInfo);
-                const userInfoBase64 = btoa(encodeURIComponent(userInfoJson));
-                params.push(`i=${userInfoBase64}`);
-            }
-            
+
+            // Формируем итоговый URL и отправляем ОДИН запрос
             if (params.length > 0) {
                 url += '?' + params.join('&');
             }
             console.log('[MenuModule] Запрос к функции:', url);
+            
             const res = await fetch(url);
+            console.log('[MenuModule] Ответ от функции:', res.status);
+            
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
+            console.log('[MenuModule] Данные получены:', data);
 
-            // Возвращаем JSON данные в навигатор
             this.loadRoute(data);
         } catch (e) {
-            console.error('Ошибка загрузки маршрута:', e);
+            console.error('[MenuModule] Ошибка загрузки маршрута:', e);
             if (typeof showToast === 'function') {
-                showToast('Ошибка загрузки: ' + e.message, 'error', 4000);
+                showToast('Ошибка загрузки: ' + e.message, 'error', 5000);
+            }
+        }
+    },
+
+    // Внутренняя функция для fetch и загрузки
+    async _fetchAndLoad(url) {
+        try {
+            const res = await fetch(url);
+            console.log('[MenuModule] Ответ от функции:', res.status);
+            
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            console.log('[MenuModule] Данные получены:', data);
+
+            this.loadRoute(data);
+        } catch (e) {
+            console.error('[MenuModule] Ошибка загрузки маршрута:', e);
+            if (typeof showToast === 'function') {
+                showToast('Ошибка загрузки: ' + e.message, 'error', 5000);
             }
         }
     },
