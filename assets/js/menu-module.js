@@ -197,7 +197,7 @@ const MenuModule = {
     // Загрузка маршрута по названию (внутренний метод)
     async loadRouteByName(routeName, routeId = null) {
         try {
-            // Формируем URL с двумя параметрами: id и m (id перед m)
+            // Формируем URL с тремя параметрами: id, m и i (информация о пользователе VK)
             let url = 'https://functions.yandexcloud.net/d4ejhg45t650h3amrik1';
             const params = [];
             if (routeId) {
@@ -206,6 +206,23 @@ const MenuModule = {
             if (routeName) {
                 params.push(`m=${encodeURIComponent(routeName)}`);
             }
+            
+            // Добавляем информацию о пользователе VK (если доступна)
+            let userInfo = null;
+            if (typeof vkBridge !== 'undefined') {
+                try {
+                    userInfo = await vkBridge.send('VKWebAppGetUserInfo');
+                } catch (e) {
+                    console.log('[MenuModule] Не удалось получить информацию о пользователе:', e.message);
+                }
+            }
+            if (userInfo) {
+                // Кодируем объект userInfo в JSON и затем в base64 для безопасной передачи в URL
+                const userInfoJson = JSON.stringify(userInfo);
+                const userInfoBase64 = btoa(encodeURIComponent(userInfoJson));
+                params.push(`i=${userInfoBase64}`);
+            }
+            
             if (params.length > 0) {
                 url += '?' + params.join('&');
             }
