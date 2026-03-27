@@ -602,7 +602,7 @@ function showPreview(i) {
         if (zoomIsSufficient) {
             // Зума достаточно — сохраняем его, центрируем на середине пути
             const centerPt = [(firstPt[0] + lastPt[0]) / 2, (firstPt[1] + lastPt[1]) / 2];
-            APP.map.setCenter(centerPt, currentZoom, { duration: 300 });
+            APP.map.setCenter(centerPt, currentZoom, { duration: 1000 });
         } else {
             // Зума недостаточно — применяем setBounds
             APP.map.setBounds(requiredBounds, {
@@ -612,7 +612,7 @@ function showPreview(i) {
         }
     } else if (p.lat && p.lon) {
         const currentZoom = APP.map.getZoom();
-        APP.map.setCenter([p.lat, p.lon], currentZoom, { duration: 300 });
+        APP.map.setCenter([p.lat, p.lon], currentZoom, { duration: 1000 });
     }
 }
 
