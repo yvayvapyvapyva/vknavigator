@@ -777,10 +777,28 @@ function processRouteData(data, name) {
     renderRoutePoints();
     updateHud();
 
+    // Показываем все точки маршрута на карте
     if (APP.navPoints.length > 0 && APP.map) {
         setTimeout(() => {
-            const bounds = APP.map.geoObjects.getBounds();
-            if (bounds) APP.map.setBounds(bounds, { zoomMargin: 80 });
+            // Вычисляем границы только по точкам маршрута (игнорируя маркер пользователя)
+            let minLat = Infinity, maxLat = -Infinity;
+            let minLon = Infinity, maxLon = -Infinity;
+            
+            APP.navPoints.forEach(p => {
+                if (p.lat && p.lon) {
+                    if (p.lat < minLat) minLat = p.lat;
+                    if (p.lat > maxLat) maxLat = p.lat;
+                    if (p.lon < minLon) minLon = p.lon;
+                    if (p.lon > maxLon) maxLon = p.lon;
+                }
+            });
+            
+            // Устанавливаем карту по границам точек маршрута
+            if (minLat !== Infinity) {
+                const bounds = [[minLat, minLon], [maxLat, maxLon]];
+                APP.map.setBounds(bounds, { zoomMargin: 80 });
+                console.log('[Map] Карта по границам маршрута:', bounds);
+            }
         }, 100);
     }
     preloadAudio();
