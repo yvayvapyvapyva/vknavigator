@@ -784,10 +784,26 @@ function processRouteData(data, name) {
         }, 100);
     }
     preloadAudio();
+
+    // Получаем имя маршрута из URL (hash или query)
+    let routeName = name;
     
-    // Получаем имя маршрута из URL параметра или используем переданное
-    const routeParam = new URLSearchParams(window.location.search).get('m');
-    const routeName = routeParam || name;
+    // Проверяем query string: ?m=id-название
+    const searchParam = new URLSearchParams(window.location.search).get('m');
+    if (searchParam) {
+        routeName = searchParam;
+    } else {
+        // Проверяем hash: #m=id-название
+        const hash = window.location.hash.slice(1);
+        if (hash) {
+            const hashParams = new URLSearchParams(hash);
+            const hashParam = hashParams.get('m');
+            if (hashParam) {
+                routeName = hashParam;
+            }
+        }
+    }
+    
     showToast(`Маршрут загружен: ${routeName}`, 'success');
 }
 
