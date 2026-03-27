@@ -198,7 +198,7 @@ const MenuModule = {
         document.getElementById('menuBtn').addEventListener('click', () => {
             this.show();
             document.getElementById('routeInput').value = '';
-            document.getElementById('routeInput').focus();
+            // Не устанавливаем фокус автоматически — пользователь сам нажмёт на поле
         });
     },
     
