@@ -411,7 +411,7 @@ function toggleAutoCenter() {
 function getNavIconSvg(col, txt, az, isEnd, isCurr = false, hasComm = false) {
     const s = isEnd ? 34 : 40, c = s / 2;
     const strk = isCurr ? '#00FF00' : '#000000';
-    const textColor = hasComm ? '#FF9500' : '#000000';
+    const textColor = hasComm ? '#B03050' : '#000000';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}">
         <g transform="rotate(${az},${c},${c})">
             <polygon points="${c},2 ${c+10},${s-5} ${c},${s-14} ${c-10},${s-5}" fill="${col}" stroke="${strk}" stroke-width="1.5"/>
@@ -428,13 +428,14 @@ function clearRoute() {
         APP.navPoints.forEach(p => {
             if (p.placemark) APP.map.geoObjects.remove(p.placemark);
             if (p.line) APP.map.geoObjects.remove(p.line);
+            if (p.lineOutline) APP.map.geoObjects.remove(p.lineOutline);
             if (p.endPlacemark) APP.map.geoObjects.remove(p.endPlacemark);
         });
     }
     APP.navPoints = [];
     APP.navCurrentIndex = 0;
     APP.navPreviewIndex = -1;
-    
+
     // Скрываем HUD
     $('hud').classList.remove('active');
 }
@@ -444,6 +445,7 @@ function renderRoutePoints() {
         APP.navPoints.forEach(p => {
             if (p.placemark) APP.map.geoObjects.remove(p.placemark);
             if (p.line) APP.map.geoObjects.remove(p.line);
+            if (p.lineOutline) APP.map.geoObjects.remove(p.lineOutline);
             if (p.endPlacemark) APP.map.geoObjects.remove(p.endPlacemark);
         });
     }
@@ -465,7 +467,7 @@ function renderRoutePoints() {
 
         const placemark = new ymaps.Placemark([p.lat, p.lon], { pointIndex: i }, {
             iconLayout: 'default#image',
-            iconImageHref: getNavIconSvg(p.hex, p.id, p.az, false, isCurrent || isPreview, hasComm),
+            iconImageHref: getNavIconSvg(p.hex, p.id, p.az, false, isCurrent, hasComm),
             iconImageSize: [40, 40], iconImageOffset: [-20, -20],
             iconOpacity: isPreview ? 1 : (isPrevious ? 0.5 : (isPassed ? 0.3 : 1)),
             zIndex: (isCurrent || isPreview) ? 1000 : (isPassed ? 600 : 500)
@@ -476,18 +478,31 @@ function renderRoutePoints() {
             else closePreview();
         });
 
-        let line = null, endPlacemark = null;
+        let line = null, lineOutline = null, endPlacemark = null;
         if (showPath && p.pts && p.pts.length >= 2) {
+            const isCurrentOrPreview = isCurrent || isPreview;
+            // Сначала рисуем чёрную окантовку (нижний слой)
+            if (isCurrentOrPreview) {
+                lineOutline = new ymaps.Polyline(p.pts, {}, {
+                    strokeColor: '#000000',
+                    strokeWidth: 4 + 2,
+                    strokeOpacity: 1,
+                    outline: false,
+                    zIndex: isCurrent ? 900 : 850
+                });
+            }
+            // Затем основную линию пути (верхний слой)
             line = new ymaps.Polyline(p.pts, {}, {
                 strokeColor: p.hex,
-                strokeWidth: isCurrent ? 4 : (isPreview || isPrevious ? 3 : 2),
-                strokeOpacity: isCurrent ? 1 : (isPreview ? 0.8 : (isPrevious ? 0.5 : 0.4)),
-                outline: true, outlineColor: '#000000', outlineWidth: 1.5
+                strokeWidth: isCurrent ? 4 : (isPreview || isPrevious ? 4 : 2),
+                strokeOpacity: isCurrent ? 1 : (isPreview ? 1 : (isPrevious ? 0.5 : 0.4)),
+                outline: true, outlineColor: '#000000', outlineWidth: 1.5,
+                zIndex: isCurrent ? 901 : (isPreview ? 851 : 500)
             });
             const last = p.pts[p.pts.length - 1], prev = p.pts[p.pts.length - 2];
             endPlacemark = new ymaps.Placemark(last, {}, {
                 iconLayout: 'default#image',
-                iconImageHref: getNavIconSvg(p.hex, p.id, calcAzimuth(prev, last), true, isCurrent || isPreview, hasComm),
+                iconImageHref: getNavIconSvg(p.hex, p.id, calcAzimuth(prev, last), true, isCurrent, hasComm),
                 iconImageSize: [34, 34], iconImageOffset: [-17, -17],
                 iconOpacity: isPreview ? 1 : (isPrevious ? 0.5 : (isPassed ? 0.3 : 1)),
                 zIndex: isCurrent ? 950 : (isPrevious ? 900 : 800),
@@ -496,10 +511,11 @@ function renderRoutePoints() {
         }
         if (APP.map) {
             APP.map.geoObjects.add(placemark);
+            if (lineOutline) APP.map.geoObjects.add(lineOutline);
             if (line) APP.map.geoObjects.add(line);
             if (endPlacemark) APP.map.geoObjects.add(endPlacemark);
         }
-        return { ...p, placemark, line, endPlacemark, hidden: false };
+        return { ...p, placemark, line, lineOutline, endPlacemark, hidden: false };
     });
     renderPointsList();
     updateHud();
