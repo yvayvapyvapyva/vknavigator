@@ -90,6 +90,33 @@
     .tel-label { font-size: 9px; color: #aaa; font-weight: 700; text-transform: uppercase; }
     .tel-value { font-size: 14px; font-weight: 800; text-align: center; }
     .tel-divider { height: 1px; width: 100%; background: rgba(255,255,255,0.15); margin: 4px 0; }
+    
+    /* Компас в панели телеметрии */
+    #telemetryCompass {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.3);
+        position: relative; display: flex; align-items: center; justify-content: center;
+        transition: background 0.3s, border-color 0.3s;
+    }
+    #telemetryCompass.in-range {
+        background: rgba(0,255,0,0.15); border-color: var(--target-lime);
+    }
+    #telemetryCompass .compass-arrow {
+        width: 2px; height: 26px;
+        margin-top: -13px;
+    }
+    #telemetryCompass .compass-arrow::before {
+        height: 20px;
+    }
+    #telemetryCompass .compass-arrow::after {
+        border-left: 3px solid transparent;
+        border-right: 3px solid transparent;
+        border-bottom: 5px solid currentColor;
+        top: -4px;
+    }
+    #telemetryCompass .compass-center {
+        width: 5px; height: 5px;
+    }
 
     /* HUD */
     #hud {
@@ -122,6 +149,46 @@
     .stat-value { font-size: 16px; font-weight: 800; line-height: 1; }
     .stat-value.in-range { color: var(--target-lime); }
     .stat-label-unit { font-size: 11px; color: #888; font-weight: 700; }
+
+    /* Компас азимута - базовые стили */
+    .compass-arrow {
+        position: absolute; width: 3px; height: 34px;
+        transform-origin: center center; top: 50%;
+        margin-top: -17px; border-radius: 2px; transition: transform 0.3s ease-out;
+        display: flex; flex-direction: column; align-items: center;
+    }
+    .compass-arrow::after {
+        content: '';
+        width: 0; height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-bottom: 7px solid currentColor;
+        position: absolute; top: -5px;
+    }
+    .compass-arrow-user {
+        color: #FF3B30;
+        z-index: 2;
+    }
+    .compass-arrow-user::before {
+        content: '';
+        width: 3px; height: 27px;
+        background: linear-gradient(to top, #FF3B30, #FF6B6B);
+        border-radius: 2px;
+    }
+    .compass-arrow-target {
+        color: #007AFF;
+        z-index: 1; opacity: 0.8;
+    }
+    .compass-arrow-target::before {
+        content: '';
+        width: 3px; height: 27px;
+        background: linear-gradient(to top, #007AFF, #5AC8FA);
+        border-radius: 2px;
+    }
+    .compass-center {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: rgba(255,255,255,0.5); z-index: 3;
+    }
     .action-icon-btn {
         width: 36px; height: 36px; border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
@@ -264,7 +331,11 @@
 <div id="telemetryPanel">
     <div class="tel-item"><span class="tel-label">КМ/Ч</span><span class="tel-value" id="telSpeed">0</span></div>
     <div class="tel-divider"></div>
-    <div class="tel-item"><span class="tel-label">АЗ</span><span class="tel-value" id="telAz">0°</span></div>
+    <div class="azimuth-compass" id="telemetryCompass">
+        <div class="compass-arrow compass-arrow-user" id="telemetryUserArrow"></div>
+        <div class="compass-arrow compass-arrow-target" id="telemetryTargetArrow"></div>
+        <div class="compass-center"></div>
+    </div>
 </div>
 
 <div id="hud">
@@ -285,9 +356,6 @@
         <div class="hud-stats">
             <div class="stat-item">
                 <span class="stat-value" id="hudDist">---</span><span class="stat-label-unit">м</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value" id="hudTargetAz">---</span><span class="stat-label-unit">°</span>
             </div>
         </div>
         <div style="display:flex; gap:8px; flex:1; justify-content:center; align-items:center;">
@@ -387,7 +455,22 @@ function initGeolocation() {
                     APP.userMarker.options.set('iconImageHref', getUserLocSvg(APP.lastAz));
                 }
                 $('telSpeed').textContent = Math.round(APP.currentSpeed);
-                $('telAz').textContent = `${Math.round(APP.lastAz)}°`;
+
+                // Обновляем компас если маршрут загружен
+                const previewIndex = APP.navPreviewIndex >= 0 ? APP.navPreviewIndex : APP.navCurrentIndex;
+                if (previewIndex >= 0 && APP.navPoints[previewIndex]) {
+                    const t = APP.navPoints[previewIndex];
+                    let ad = Math.abs(APP.lastAz - t.az) % 360;
+                    if (ad > 180) ad = 360 - ad;
+                    const compass = $('telemetryCompass');
+                    const userArrow = $('telemetryUserArrow');
+                    const targetArrow = $('telemetryTargetArrow');
+                    if (compass && userArrow && targetArrow) {
+                        userArrow.style.transform = `rotate(${APP.lastAz}deg)`;
+                        targetArrow.style.transform = `rotate(${t.az}deg)`;
+                        compass.classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
+                    }
+                }
 
                 if (APP.autoCenter && APP.map) APP.map.setCenter(coords);
                 if (APP.navCurrentIndex >= 0 && APP.navPreviewIndex < 0) navCheckTriggers();
@@ -529,15 +612,21 @@ function updateHud() {
 
     $('hudIndex').textContent = idx + 1;
     $('hudCmd').textContent = t.cmd;
-    $('hudTargetAz').textContent = Math.round(t.az);
     $('speakBtn').onclick = () => playCommand(t.cmd);
 
     $('selectBtn').style.display = isPreview ? 'flex' : 'none';
     if (isPreview) $('selectBtn').onclick = () => setTarget(idx);
-    
+
     // Показываем статистику и в режиме просмотра
     document.querySelector('.hud-stats').style.display = 'flex';
-    
+
+    // Обновляем компас при загрузке маршрута (даже без геопозиции)
+    const compass = $('telemetryCompass');
+    const targetArrow = $('telemetryTargetArrow');
+    if (compass && targetArrow) {
+        targetArrow.style.transform = `rotate(${t.az}deg)`;
+    }
+
     // В режиме просмотра показываем дистанцию до точки просмотра
     if (isPreview && APP.lastPos) {
         const d = ymaps.coordSystem.geo.getDistance(APP.lastPos, [t.lat, t.lon]);
@@ -550,7 +639,7 @@ function updateHud() {
         // В режиме просмотра без геопозиции
         $('hudDist').textContent = '---';
         $('hudDist').classList.remove('in-range');
-        $('hudTargetAz').classList.remove('in-range');
+        compass.classList.remove('in-range');
     }
 
     const prevBtn = $('prevBtn'), nextBtn = $('nextBtn');
@@ -567,7 +656,22 @@ function updateHud() {
 function updateHudDist(d, ad) {
     $('hudDist').textContent = `${Math.round(d)}`;
     $('hudDist').classList.toggle('in-range', d <= APP.navConfig.TRIGGER_DIST);
-    $('hudTargetAz').classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
+
+    // Обновляем компас азимута в панели телеметрии
+    const compass = $('telemetryCompass');
+    const userArrow = $('telemetryUserArrow');
+    const targetArrow = $('telemetryTargetArrow');
+    const idx = APP.navPreviewIndex >= 0 ? APP.navPreviewIndex : APP.navCurrentIndex;
+    const targetPoint = APP.navPoints[idx];
+
+    // Поворачиваем стрелки: 0° = вверх, по часовой стрелке
+    if (userArrow && targetArrow && targetPoint) {
+        userArrow.style.transform = `rotate(${APP.lastAz || 0}deg)`;
+        targetArrow.style.transform = `rotate(${targetPoint.az || 0}deg)`;
+    }
+
+    // Подсветка зелёным если азимут в допуске
+    compass.classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
 }
 
 function showPreview(i) {
@@ -638,12 +742,34 @@ function setTarget(i) {
     renderRoutePoints();
     updateHud();
     $('pointsList').style.display = 'none';
+    
+    // Обновляем компас для текущей точки
+    if (APP.lastPos && APP.navPoints[APP.navCurrentIndex]) {
+        const t = APP.navPoints[APP.navCurrentIndex];
+        let ad = Math.abs(APP.lastAz - t.az) % 360;
+        if (ad > 180) ad = 360 - ad;
+        const compass = $('telemetryCompass');
+        if (compass) {
+            compass.classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
+        }
+    }
 }
 
 function closePreview() {
     APP.navPreviewIndex = -1;
     renderRoutePoints();
     updateHud();
+    
+    // Обновляем компас для текущей точки
+    if (APP.lastPos && APP.navPoints[APP.navCurrentIndex]) {
+        const t = APP.navPoints[APP.navCurrentIndex];
+        let ad = Math.abs(APP.lastAz - t.az) % 360;
+        if (ad > 180) ad = 360 - ad;
+        const compass = $('telemetryCompass');
+        if (compass) {
+            compass.classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
+        }
+    }
 }
 
 function renderPointsList() {
