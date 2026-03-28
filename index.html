@@ -134,9 +134,9 @@
     }
     .hud-stats { display: flex; flex-direction: row; align-items: center; gap: 8px; }
     .hud-stats .stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .stat-value { font-size: 16px; font-weight: 800; line-height: 1; }
+    .stat-value { font-size: 14px; font-weight: 800; line-height: 1; }
     .stat-value.in-range { color: var(--target-lime); }
-    .stat-label-unit { font-size: 11px; color: #888; font-weight: 700; }
+    .stat-label-unit { font-size: 10px; color: #888; font-weight: 700; }
     
     /* Компас в HUD панели */
     .hud-stats .azimuth-compass {
@@ -375,8 +375,8 @@
             </div>
         </div>
         <div style="display:flex; gap:8px; flex:1; justify-content:center; align-items:center;">
+            <button id="selectBtn" style="display:none;">Выбрать</button>
         </div>
-        <button id="selectBtn" style="display:none;">Выбрать</button>
         <button id="nextBtn" class="nav-arrow-btn" title="Следующая точка">
             <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
         </button>
@@ -640,14 +640,29 @@ function updateHud() {
         targetArrow.style.transform = `rotate(${t.az}deg)`;
     }
 
-    // В режиме просмотра показываем дистанцию до точки просмотра
-    if (isPreview && APP.lastPos) {
+    // Обновляем дистанцию при загрузке маршрута (если есть геопозиция)
+    if (APP.lastPos) {
         const d = ymaps.coordSystem.geo.getDistance(APP.lastPos, [t.lat, t.lon]);
         let ad = Math.abs(APP.lastAz - t.az) % 360;
         if (ad > 180) ad = 360 - ad;
-        updateHudDist(d, ad);
+        $('hudDist').textContent = `${Math.round(d)}`;
+        $('hudDist').classList.toggle('in-range', d <= APP.navConfig.TRIGGER_DIST);
+        
+        // Обновляем компас
+        const compass = $('hudCompass');
+        const userArrow = $('hudUserArrow');
+        const targetArrow = $('hudTargetArrow');
+        if (userArrow && targetArrow) {
+            userArrow.style.transform = `rotate(${APP.lastAz || 0}deg)`;
+            targetArrow.style.transform = `rotate(${t.az || 0}deg)`;
+        }
+        if (compass) {
+            compass.classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
+        }
     } else if (!isPreview) {
-        // В обычном режиме дистанция обновляется в navCheckTriggers
+        // Без геопозиции показываем прочерк
+        $('hudDist').textContent = '---';
+        $('hudDist').classList.remove('in-range');
     } else {
         // В режиме просмотра без геопозиции
         $('hudDist').textContent = '---';
@@ -756,15 +771,18 @@ function setTarget(i) {
     updateHud();
     $('pointsList').style.display = 'none';
     
-    // Обновляем компас для текущей точки
+    // Обновляем компас и дистанцию для текущей точки
     if (APP.lastPos && APP.navPoints[APP.navCurrentIndex]) {
         const t = APP.navPoints[APP.navCurrentIndex];
+        const d = ymaps.coordSystem.geo.getDistance(APP.lastPos, [t.lat, t.lon]);
         let ad = Math.abs(APP.lastAz - t.az) % 360;
         if (ad > 180) ad = 360 - ad;
         const compass = $('hudCompass');
         if (compass) {
             compass.classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
         }
+        $('hudDist').textContent = `${Math.round(d)}`;
+        $('hudDist').classList.toggle('in-range', d <= APP.navConfig.TRIGGER_DIST);
     }
 }
 
@@ -773,15 +791,18 @@ function closePreview() {
     renderRoutePoints();
     updateHud();
     
-    // Обновляем компас для текущей точки
+    // Обновляем компас и дистанцию для текущей точки
     if (APP.lastPos && APP.navPoints[APP.navCurrentIndex]) {
         const t = APP.navPoints[APP.navCurrentIndex];
+        const d = ymaps.coordSystem.geo.getDistance(APP.lastPos, [t.lat, t.lon]);
         let ad = Math.abs(APP.lastAz - t.az) % 360;
         if (ad > 180) ad = 360 - ad;
         const compass = $('hudCompass');
         if (compass) {
             compass.classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
         }
+        $('hudDist').textContent = `${Math.round(d)}`;
+        $('hudDist').classList.toggle('in-range', d <= APP.navConfig.TRIGGER_DIST);
     }
 }
 
