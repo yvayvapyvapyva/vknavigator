@@ -76,47 +76,26 @@
         background: var(--dark-panel);
         backdrop-filter: var(--panel-blur);
         -webkit-backdrop-filter: var(--panel-blur);
-        border-radius: 14px; padding: 10px 14px; color: white;
-        display: none; flex-direction: column; align-items: center; gap: 6px;
+        border-radius: 50%;
         border: 1px solid var(--border);
         cursor: pointer;
         box-shadow: 0 10px 25px rgba(0,0,0,0.22);
         transition: transform 0.15s, background 0.15s;
-        width: 56px; box-sizing: border-box;
+        width: 56px; height: 56px;
+        box-sizing: border-box;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 8px;
     }
     #telemetryPanel.visible { display: flex; }
     #telemetryPanel:active { transform: scale(0.95); }
     .tel-item { display: flex; flex-direction: column; align-items: center; }
-    .tel-label { font-size: 9px; color: #aaa; font-weight: 700; text-transform: uppercase; }
-    .tel-value { font-size: 14px; font-weight: 800; text-align: center; }
-    .tel-divider { height: 1px; width: 100%; background: rgba(255,255,255,0.15); margin: 4px 0; }
-    
-    /* Компас в панели телеметрии */
-    #telemetryCompass {
-        width: 32px; height: 32px; border-radius: 50%;
-        background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.3);
-        position: relative; display: flex; align-items: center; justify-content: center;
-        transition: background 0.3s, border-color 0.3s;
-    }
-    #telemetryCompass.in-range {
-        background: rgba(0,255,0,0.15); border-color: var(--target-lime);
-    }
-    #telemetryCompass .compass-arrow {
-        width: 2px; height: 26px;
-        margin-top: -13px;
-    }
-    #telemetryCompass .compass-arrow::before {
-        height: 20px;
-    }
-    #telemetryCompass .compass-arrow::after {
-        border-left: 3px solid transparent;
-        border-right: 3px solid transparent;
-        border-bottom: 5px solid currentColor;
-        top: -4px;
-    }
-    #telemetryCompass .compass-center {
-        width: 5px; height: 5px;
-    }
+    .tel-label { font-size: 8px; color: #aaa; font-weight: 700; text-transform: uppercase; }
+    .tel-value { font-size: 13px; font-weight: 800; text-align: center; }
+    .tel-divider { height: 1px; width: 100%; background: rgba(255,255,255,0.15); margin: 4px 0; display: none; }
 
     /* HUD */
     #hud {
@@ -134,59 +113,95 @@
         width: calc(100% - 32px); box-sizing: border-box;
     }
     #hud.active { display: flex; }
-    .hud-header { display: flex; align-items: flex-start; gap: 10px; }
+    .hud-header { display: flex; align-items: center; gap: 10px; }
     .hud-index {
         background: rgba(255,255,255,0.2); color: white;
         font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px;
     }
     .hud-cmd { font-size: 16px; font-weight: 700; flex: 1; }
+    .hud-header .action-icon-btn {
+        width: 40px; height: 40px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid var(--border);
+        cursor: pointer; flex-shrink: 0;
+    }
+    .hud-header .action-icon-btn svg { fill: #f3f4f6; width: 20px; height: 20px; }
+    .hud-header .action-icon-btn:active { transform: scale(0.95); }
     .hud-actions {
         width: 100%; display: flex; padding-top: 8px; gap: 8px;
         align-items: center; border-top: 1px solid rgba(255,255,255,0.1);
     }
-    .hud-stats { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .hud-stats .stat-item { display: flex; align-items: baseline; gap: 2px; }
+    .hud-stats { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+    .hud-stats .stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .stat-value { font-size: 16px; font-weight: 800; line-height: 1; }
     .stat-value.in-range { color: var(--target-lime); }
     .stat-label-unit { font-size: 11px; color: #888; font-weight: 700; }
-
-    /* Компас азимута - базовые стили */
+    
+    /* Компас в HUD панели */
+    .hud-stats .azimuth-compass {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.3);
+        position: relative; display: flex; align-items: center; justify-content: center;
+        transition: background 0.3s, border-color 0.3s;
+        flex-shrink: 0;
+    }
+    .hud-stats .azimuth-compass.in-range {
+        background: rgba(0,255,0,0.15); border-color: var(--target-lime);
+    }
+    .hud-stats .compass-arrow {
+        width: 2px; height: 26px;
+        margin-top: -13px;
+    }
+    .hud-stats .compass-arrow::before {
+        height: 20px;
+    }
+    .hud-stats .compass-arrow::after {
+        border-left: 3px solid transparent;
+        border-right: 3px solid transparent;
+        border-bottom: 5px solid currentColor;
+        top: -4px;
+    }
+    .hud-stats .compass-center {
+        width: 5px; height: 5px;
+    }
+    
+    /* Базовые стили компаса */
     .compass-arrow {
-        position: absolute; width: 3px; height: 34px;
+        position: absolute; width: 2px; height: 26px;
         transform-origin: center center; top: 50%;
-        margin-top: -17px; border-radius: 2px; transition: transform 0.3s ease-out;
+        margin-top: -13px; border-radius: 2px; transition: transform 0.3s ease-out;
         display: flex; flex-direction: column; align-items: center;
     }
     .compass-arrow::after {
         content: '';
         width: 0; height: 0;
-        border-left: 4px solid transparent;
-        border-right: 4px solid transparent;
-        border-bottom: 7px solid currentColor;
-        position: absolute; top: -5px;
+        border-left: 3px solid transparent;
+        border-right: 3px solid transparent;
+        border-bottom: 5px solid currentColor;
+        position: absolute; top: -4px;
+    }
+    .compass-arrow::before {
+        content: '';
+        width: 2px; height: 20px;
+        border-radius: 2px;
     }
     .compass-arrow-user {
         color: #FF3B30;
         z-index: 2;
     }
     .compass-arrow-user::before {
-        content: '';
-        width: 3px; height: 27px;
         background: linear-gradient(to top, #FF3B30, #FF6B6B);
-        border-radius: 2px;
     }
     .compass-arrow-target {
         color: #007AFF;
         z-index: 1; opacity: 0.8;
     }
     .compass-arrow-target::before {
-        content: '';
-        width: 3px; height: 27px;
         background: linear-gradient(to top, #007AFF, #5AC8FA);
-        border-radius: 2px;
     }
     .compass-center {
-        width: 6px; height: 6px; border-radius: 50%;
+        width: 5px; height: 5px; border-radius: 50%;
         background: rgba(255,255,255,0.5); z-index: 3;
     }
     .action-icon-btn {
@@ -203,9 +218,8 @@
         background: rgba(52,199,89,0.42);
         border-color: rgba(103,255,153,0.45);
         color: #fff; font-size: 14px; font-weight: 700;
-        cursor: pointer; flex-shrink: 0;
+        cursor: pointer;
         transition: transform 0.15s, background 0.15s;
-        display: none;
     }
     #selectBtn:active { transform: scale(0.95); }
     .nav-arrow-btn {
@@ -321,7 +335,7 @@
 <button id="listBtn" class="circle-btn">
     <svg viewBox="0 0 24 24"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z"/></svg>
 </button>
-<button id="mapTypeBtn" class="circle-btn" title="Переключить вид карты" style="top: calc(88px + env(safe-area-inset-top)); left: 16px;">
+<button id="mapTypeBtn" class="circle-btn" title="Переключить вид карты" style="top: calc(82px + env(safe-area-inset-top)); left: 16px;">
     <svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>
 </button>
 <button id="locateBtn" class="circle-btn">
@@ -330,12 +344,6 @@
 
 <div id="telemetryPanel">
     <div class="tel-item"><span class="tel-label">КМ/Ч</span><span class="tel-value" id="telSpeed">0</span></div>
-    <div class="tel-divider"></div>
-    <div class="azimuth-compass" id="telemetryCompass">
-        <div class="compass-arrow compass-arrow-user" id="telemetryUserArrow"></div>
-        <div class="compass-arrow compass-arrow-target" id="telemetryTargetArrow"></div>
-        <div class="compass-center"></div>
-    </div>
 </div>
 
 <div id="hud">
@@ -348,6 +356,9 @@
     <div class="hud-header">
         <span class="hud-index" id="hudIndex">1</span>
         <div class="hud-cmd" id="hudCmd">Маршрут не выбран</div>
+        <button id="speakBtn" class="action-icon-btn" style="width:40px;height:40px;flex-shrink:0;">
+            <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+        </button>
     </div>
     <div class="hud-actions">
         <button id="prevBtn" class="nav-arrow-btn" title="Предыдущая точка">
@@ -357,13 +368,15 @@
             <div class="stat-item">
                 <span class="stat-value" id="hudDist">---</span><span class="stat-label-unit">м</span>
             </div>
+            <div class="azimuth-compass" id="hudCompass">
+                <div class="compass-arrow compass-arrow-user" id="hudUserArrow"></div>
+                <div class="compass-arrow compass-arrow-target" id="hudTargetArrow"></div>
+                <div class="compass-center"></div>
+            </div>
         </div>
         <div style="display:flex; gap:8px; flex:1; justify-content:center; align-items:center;">
-            <button id="selectBtn">Выбрать</button>
-            <button id="speakBtn" class="action-icon-btn">
-                <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
-            </button>
         </div>
+        <button id="selectBtn" style="display:none;">Выбрать</button>
         <button id="nextBtn" class="nav-arrow-btn" title="Следующая точка">
             <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
         </button>
@@ -462,9 +475,9 @@ function initGeolocation() {
                     const t = APP.navPoints[previewIndex];
                     let ad = Math.abs(APP.lastAz - t.az) % 360;
                     if (ad > 180) ad = 360 - ad;
-                    const compass = $('telemetryCompass');
-                    const userArrow = $('telemetryUserArrow');
-                    const targetArrow = $('telemetryTargetArrow');
+                    const compass = $('hudCompass');
+                    const userArrow = $('hudUserArrow');
+                    const targetArrow = $('hudTargetArrow');
                     if (compass && userArrow && targetArrow) {
                         userArrow.style.transform = `rotate(${APP.lastAz}deg)`;
                         targetArrow.style.transform = `rotate(${t.az}deg)`;
@@ -614,15 +627,15 @@ function updateHud() {
     $('hudCmd').textContent = t.cmd;
     $('speakBtn').onclick = () => playCommand(t.cmd);
 
-    $('selectBtn').style.display = isPreview ? 'flex' : 'none';
+    $('selectBtn').style.display = isPreview ? 'block' : 'none';
     if (isPreview) $('selectBtn').onclick = () => setTarget(idx);
 
     // Показываем статистику и в режиме просмотра
     document.querySelector('.hud-stats').style.display = 'flex';
 
     // Обновляем компас при загрузке маршрута (даже без геопозиции)
-    const compass = $('telemetryCompass');
-    const targetArrow = $('telemetryTargetArrow');
+    const compass = $('hudCompass');
+    const targetArrow = $('hudTargetArrow');
     if (compass && targetArrow) {
         targetArrow.style.transform = `rotate(${t.az}deg)`;
     }
@@ -639,7 +652,7 @@ function updateHud() {
         // В режиме просмотра без геопозиции
         $('hudDist').textContent = '---';
         $('hudDist').classList.remove('in-range');
-        compass.classList.remove('in-range');
+        $('hudCompass').classList.remove('in-range');
     }
 
     const prevBtn = $('prevBtn'), nextBtn = $('nextBtn');
@@ -657,10 +670,10 @@ function updateHudDist(d, ad) {
     $('hudDist').textContent = `${Math.round(d)}`;
     $('hudDist').classList.toggle('in-range', d <= APP.navConfig.TRIGGER_DIST);
 
-    // Обновляем компас азимута в панели телеметрии
-    const compass = $('telemetryCompass');
-    const userArrow = $('telemetryUserArrow');
-    const targetArrow = $('telemetryTargetArrow');
+    // Обновляем компас азимута в HUD панели
+    const compass = $('hudCompass');
+    const userArrow = $('hudUserArrow');
+    const targetArrow = $('hudTargetArrow');
     const idx = APP.navPreviewIndex >= 0 ? APP.navPreviewIndex : APP.navCurrentIndex;
     const targetPoint = APP.navPoints[idx];
 
@@ -748,7 +761,7 @@ function setTarget(i) {
         const t = APP.navPoints[APP.navCurrentIndex];
         let ad = Math.abs(APP.lastAz - t.az) % 360;
         if (ad > 180) ad = 360 - ad;
-        const compass = $('telemetryCompass');
+        const compass = $('hudCompass');
         if (compass) {
             compass.classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
         }
@@ -765,7 +778,7 @@ function closePreview() {
         const t = APP.navPoints[APP.navCurrentIndex];
         let ad = Math.abs(APP.lastAz - t.az) % 360;
         if (ad > 180) ad = 360 - ad;
-        const compass = $('telemetryCompass');
+        const compass = $('hudCompass');
         if (compass) {
             compass.classList.toggle('in-range', ad <= APP.navConfig.AZ_TOLERANCE);
         }
