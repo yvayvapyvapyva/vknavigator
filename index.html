@@ -914,9 +914,6 @@ async function preloadAudio() {
         }
         loaded++;
     }
-
-    const cachedCount = loaded - failed;
-    console.log(`Закешировано: ${cachedCount}/${uniquePaths.length} файлов`);
 }
 
 // ============================================
@@ -955,9 +952,7 @@ function loadRouteFromJSON(data) {
 function processRouteData(data, name) {
     // Включаем Wake Lock
     startWakeLock();
-    
-    console.log('processRouteData:', { data, name });
-    
+
     if (!data || !Array.isArray(data)) {
         throw new Error('Неверный формат данных: ожидается массив');
     }
@@ -979,9 +974,7 @@ function processRouteData(data, name) {
             az: pts.length >= 2 ? calcAzimuth(pts[0], pts[1]) : 0
         };
     }).filter(p => p !== null);
-    
-    console.log('Обработано точек:', APP.navPoints.length);
-    
+
     if (APP.navPoints.length === 0) {
         throw new Error('Нет валидных точек в маршруте');
     }
@@ -1017,7 +1010,6 @@ function processRouteData(data, name) {
             if (minLat !== Infinity) {
                 const bounds = [[minLat, minLon], [maxLat, maxLon]];
                 APP.map.setBounds(bounds, { zoomMargin: 80 });
-                console.log('[Map] Карта по границам маршрута:', bounds);
             }
         }, 100);
     }
@@ -1041,8 +1033,6 @@ function processRouteData(data, name) {
             }
         }
     }
-
-    console.log(`[App] Маршрут загружен: ${routeName}`);
 }
 
 // ============================================
@@ -1089,21 +1079,17 @@ function initAudioContext() {
 }
 
 function startWakeLock() {
-    console.log('startWakeLock called');
-    
     // Инициализируем canvas видео
     initWakeVideo();
-    
+
     // Метод 1: Воспроизведение видео из canvas
     if (wakeVideo && wakeCanvasStream) {
         wakeVideo.srcObject = wakeCanvasStream;
         wakeVideo.play().catch(e => console.log('Wake video error:', e));
-        console.log('Wake video started');
     }
-    
+
     // Метод 2: Аудио контекст для предотвращения сна
     const audioCtx = initAudioContext();
-    console.log('Audio context initialized');
     
     // Метод 3: Периодическая активность
     if ('vibrate' in navigator) {
@@ -1115,7 +1101,6 @@ function startWakeLock() {
     wakeLockInterval = setInterval(() => {
         if (wakeVideo && wakeVideo.paused) {
             wakeVideo.play().catch(e => console.log('Wake video restart error:', e));
-            console.log('Wake video restarted');
         }
         if (audioCtx && audioCtx.state === 'suspended') {
             audioCtx.resume();
@@ -1127,8 +1112,6 @@ function startWakeLock() {
             ctx.fillRect(0, 0, 1, 1);
         }
     }, 3000);
-    
-    console.log('Wake Lock started');
 }
 
 function stopWakeLock() {
@@ -1179,7 +1162,6 @@ ymaps.ready(() => {
     $('mapTypeBtn').addEventListener('click', () => {
         mapTypeIndex = (mapTypeIndex + 1) % 3;
         APP.map.setType(mapTypes[mapTypeIndex]);
-        console.log('[Map] Тип карты:', mapTypes[mapTypeIndex]);
     });
 
     // Клик по карте

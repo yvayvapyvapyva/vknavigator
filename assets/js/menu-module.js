@@ -67,7 +67,6 @@ const MenuModule = {
         // Подписка на события VK Bridge для параметров запуска
         if (typeof vkBridge !== 'undefined') {
             vkBridge.subscribe((event) => {
-                console.log('[MenuModule] VK Bridge event:', event);
                 // Проверяем, что маршрут ещё не загружен
                 if (!this.isLoaded && (event && event.type === 'VKWebAppUpdateConfig' || event.detail)) {
                     this.checkUrlParam();
@@ -78,7 +77,6 @@ const MenuModule = {
             try {
                 vkBridge.send('VKWebAppGetLaunchParams')
                     .then(params => {
-                        console.log('[MenuModule] Launch params:', params);
                         // Проверяем, что маршрут ещё не загружен
                         if (!this.isLoaded && params && params.m) {
                             const { id, name } = this.parseRouteInput(params.m);
@@ -89,9 +87,8 @@ const MenuModule = {
                             }
                         }
                     })
-                    .catch(e => console.log('[MenuModule] GetLaunchParams error:', e));
+                    .catch(e => {});
             } catch (e) {
-                console.log('[MenuModule] VK Bridge not available:', e);
             }
         }
     },
@@ -207,13 +204,10 @@ const MenuModule = {
         // Поддерживаем только формат: #m=id-название
         const routeParam = this.getUrlParam('m');
 
-        console.log('[MenuModule] Проверка URL параметра m:', routeParam);
-
         if (routeParam) {
             // Парсим формат "id-название"
             const { id, name } = this.parseRouteInput(routeParam);
-            
-            console.log('[MenuModule] Найден параметр маршрута:', name, id ? ', ID:' + id : '');
+
             this.isLoaded = true;
             this.hide();
             this.loadRouteByName(name, id);
@@ -250,27 +244,21 @@ const MenuModule = {
                         const userInfoJson = JSON.stringify(userInfo);
                         const userInfoBase64 = btoa(encodeURIComponent(userInfoJson));
                         params.push(`i=${userInfoBase64}`);
-                        console.log('[MenuModule] Добавлен параметр i (VK user)');
                     }
                 } catch (e) {
-                    console.log('[MenuModule] VK userInfo недоступен (таймаут или ошибка):', e.message);
                 }
             } else {
-                console.log('[MenuModule] VK Bridge недоступен (веб-режим)');
             }
 
             // Формируем итоговый URL и отправляем ОДИН запрос
             if (params.length > 0) {
                 url += '?' + params.join('&');
             }
-            console.log('[MenuModule] Запрос к функции:', url);
-            
+
             const res = await fetch(url);
-            console.log('[MenuModule] Ответ от функции:', res.status);
-            
+
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
-            console.log('[MenuModule] Данные получены:', data);
 
             this.loadRoute(data);
         } catch (e) {
@@ -285,11 +273,9 @@ const MenuModule = {
     async _fetchAndLoad(url) {
         try {
             const res = await fetch(url);
-            console.log('[MenuModule] Ответ от функции:', res.status);
-            
+
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
-            console.log('[MenuModule] Данные получены:', data);
 
             this.loadRoute(data);
         } catch (e) {
